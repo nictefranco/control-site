@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Control Site">
+<meta name="theme-color" content="#1a73e8">
+<title>Control Site Facilities</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f3;color:#222;min-height:100vh;padding-bottom:80px}
+.topbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:12px 16px;position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:10px}
+.topbar h1{font-size:17px;font-weight:600;flex:1}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#639922;flex-shrink:0}
+.sync-dot.syncing{background:#EF9F27;animation:pulse .8s infinite}
+.sync-dot.error{background:#E24B4A}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:20px;border:none;cursor:pointer;font-weight:500}
+.btn-red{background:#E24B4A;color:#fff}
+.btn-blue{background:#1a73e8;color:#fff}
+.btn-gray{background:#f0f0f0;color:#333;border:1px solid #ddd}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e0e0e0;display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;padding:10px 4px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;color:#888;position:relative}
+.nav-btn.active{color:#1a73e8}
+.nav-btn .icon{font-size:20px;line-height:1}
+.nav-badge{position:absolute;top:6px;right:50%;transform:translateX(14px);background:#E24B4A;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;min-width:16px;text-align:center}
+.panel{display:none;padding:12px 16px}
+.panel.active{display:block}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{background:#fff;border-radius:12px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.stat-num{font-size:28px;font-weight:700;line-height:1}
+.stat-label{font-size:11px;color:#888;margin-top:3px}
+.progress-wrap{background:#fff;border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.progress-bar{height:10px;background:#eee;border-radius:5px;overflow:hidden;margin:8px 0 4px}
+.progress-fill{height:100%;border-radius:5px;transition:width .4s}
+.section-title{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;padding:0 2px}
+.items-wrap{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+.item-chip{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:20px;border:1.5px solid #e0e0e0;background:#fff;font-size:13px;cursor:pointer;min-width:100px}
+.item-chip.ok{background:#EAF3DE;border-color:#97C459;color:#3B6D11}
+.item-chip.falla-critica{background:#FCEBEB;border-color:#E24B4A;color:#A32D2D}
+.item-chip.falla-urgente{background:#FAEEDA;border-color:#EF9F27;color:#854F0B}
+.item-chip.falla-baja{background:#E6F1FB;border-color:#85B7EB;color:#185FA5}
+.item-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0}
+.item-chip.ok .item-dot{background:#639922}
+.item-chip.falla-critica .item-dot{background:#E24B4A}
+.item-chip.falla-urgente .item-dot{background:#EF9F27}
+.item-chip.falla-baja .item-dot{background:#378ADD}
+.item-flag{margin-left:auto;font-size:14px;opacity:.35;padding:2px}
+.item-chip.falla-critica .item-flag,.item-chip.falla-urgente .item-flag,.item-chip.falla-baja .item-flag{opacity:1}
+.falla-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid #ccc}
+.falla-card.critica{border-left-color:#E24B4A}
+.falla-card.urgente{border-left-color:#EF9F27}
+.falla-card.baja{border-left-color:#378ADD}
+.falla-card.resuelta{border-left-color:#639922;opacity:.85}
+.falla-badges{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600}
+.badge-critica{background:#FCEBEB;color:#A32D2D}
+.badge-urgente{background:#FAEEDA;color:#854F0B}
+.badge-baja{background:#E6F1FB;color:#185FA5}
+.badge-activa{background:#FCEBEB;color:#A32D2D}
+.badge-resuelta{background:#EAF3DE;color:#3B6D11}
+.falla-nombre{font-size:15px;font-weight:600;margin-bottom:2px}
+.falla-loc{font-size:12px;color:#888;margin-bottom:8px}
+.falla-meta{font-size:12px;color:#555;display:grid;grid-template-columns:auto 1fr;gap:2px 10px}
+.falla-meta span:nth-child(odd){color:#aaa}
+.falla-actions{display:flex;gap:8px;margin-top:10px}
+.btn-resolver{flex:1;padding:9px;font-size:13px;border:1.5px solid #97C459;border-radius:10px;background:#EAF3DE;color:#3B6D11;cursor:pointer;font-weight:500}
+.btn-eliminar{padding:9px 14px;font-size:13px;border:1.5px solid #ddd;border-radius:10px;background:#fff;color:#888;cursor:pointer}
+.eq-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1.5px solid #e0e0e0;cursor:pointer}
+.eq-card.ok{border-color:#97C459;background:#EAF3DE}
+.eq-card.falla{border-color:#E24B4A;background:#FCEBEB}
+.eq-icon{font-size:26px;flex-shrink:0}
+.eq-info{flex:1}
+.eq-nombre{font-size:14px;font-weight:600}
+.eq-ubic{font-size:12px;color:#888}
+.eq-status{font-size:11px;padding:3px 8px;border-radius:8px;font-weight:500;flex-shrink:0}
+.dash-falla{background:#fff;border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.banner{border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500}
+.banner-critica{background:#FCEBEB;border:1.5px solid #F09595;color:#A32D2D}
+.banner-urgente{background:#FAEEDA;border:1.5px solid #FAC775;color:#854F0B}
+.filters{display:flex;gap:6px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filter-chip{padding:6px 14px;border-radius:20px;border:1.5px solid #e0e0e0;background:#fff;font-size:13px;white-space:nowrap;cursor:pointer;flex-shrink:0}
+.filter-chip.active{background:#1a73e8;border-color:#1a73e8;color:#fff}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-bg.center{align-items:center}
+.modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px 20px calc(20px + env(safe-area-inset-bottom));max-height:90vh;overflow-y:auto}
+.modal.center-modal{border-radius:16px;margin:16px;max-height:80vh}
+.modal-handle{width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 16px}
+.modal h3{font-size:17px;font-weight:600;margin-bottom:14px}
+.modal label{font-size:13px;color:#888;display:block;margin-bottom:4px;margin-top:12px}
+.modal input,.modal select,.modal textarea{width:100%;font-size:15px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff;font-family:inherit}
+.modal textarea{resize:none;min-height:72px}
+.modal-actions{display:flex;gap:8px;margin-top:18px}
+.btn-cancel{flex:1;padding:12px;font-size:15px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff;color:#666;cursor:pointer}
+.btn-confirm{flex:2;padding:12px;font-size:15px;border:none;border-radius:10px;background:#E24B4A;color:#fff;cursor:pointer;font-weight:600}
+.btn-confirm.green{background:#0F6E56}
+.btn-confirm.blue{background:#1a73e8}
+.prio-opts{display:flex;flex-direction:column;gap:8px;margin-bottom:4px}
+.prio-opt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;border:1.5px solid #e0e0e0;cursor:pointer;background:#fafafa}
+.prio-opt.sel-critica{border-color:#E24B4A;background:#FCEBEB}
+.prio-opt.sel-urgente{border-color:#EF9F27;background:#FAEEDA}
+.prio-opt.sel-baja{border-color:#378ADD;background:#E6F1FB}
+.prio-icon{font-size:22px}
+.prio-text .prio-name{font-size:14px;font-weight:600}
+.prio-text .prio-desc{font-size:11px;color:#888}
+.prio-check{margin-left:auto;font-size:18px}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:300;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.loading{text-align:center;padding:30px;color:#aaa;font-size:14px}
+.loading-spinner{font-size:28px;animation:spin 1s linear infinite;display:block;margin:0 auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Control de site</h1>
+  <span class="sync-dot" id="sync-dot" title="Estado sincronización"></span>
+  <span id="sync-label" style="font-size:11px;color:#aaa"></span>
+  <button class="btn-sm btn-blue" onclick="sincronizar()" style="margin-left:4px">↻</button>
+  <button class="btn-sm btn-red" onclick="abrirModalFalla()">⚑ Falla</button>
+</div>
+
+<div id="banners" style="padding:8px 16px 0"></div>
+
+<div id="panel-dash" class="panel active">
+  <div id="dash-content"><div class="loading"><span class="loading-spinner">⟳</span>Cargando datos...</div></div>
+</div>
+<div id="panel-rec" class="panel">
+  <div class="filters" id="filters-rec">
+    <span class="filter-chip active" onclick="setFiltro('todos',this)">Todos</span>
+    <span class="filter-chip" onclick="setFiltro('baño',this)">Baños</span>
+    <span class="filter-chip" onclick="setFiltro('tarja',this)">Tarjas</span>
+    <span class="filter-chip" onclick="setFiltro('pendiente',this)">Pendientes</span>
+    <span class="filter-chip" onclick="setFiltro('falla',this)">Con falla</span>
+  </div>
+  <div id="rec-content"><div class="loading"><span class="loading-spinner">⟳</span>Cargando...</div></div>
+</div>
+<div id="panel-eq" class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <span style="font-size:13px;color:#666">Toca para marcar OK</span>
+    <button class="btn-sm btn-red" onclick="abrirModalEqFalla()">⚑ Falla equipo</button>
+  </div>
+  <div id="eq-content"></div>
+</div>
+<div id="panel-fal" class="panel">
+  <div class="filters">
+    <span class="filter-chip active" onclick="setFiltroFalla('todas',this)">Todas</span>
+    <span class="filter-chip" onclick="setFiltroFalla('critica',this)">🔴 Críticas</span>
+    <span class="filter-chip" onclick="setFiltroFalla('urgente',this)">🟡 Urgentes</span>
+    <span class="filter-chip" onclick="setFiltroFalla('baja',this)">🔵 Bajas</span>
+    <span class="filter-chip" onclick="setFiltroFalla('resuelta',this)">✓ Resueltas</span>
+  </div>
+  <div id="fal-content"></div>
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-dash" onclick="setPanel('dash')"><span class="icon">📊</span>Dashboard</button>
+  <button class="nav-btn" id="nav-rec" onclick="setPanel('rec')"><span class="icon">✔</span>Recorrido</button>
+  <button class="nav-btn" id="nav-eq" onclick="setPanel('eq')"><span class="icon">🔧</span>Equipos</button>
+  <button class="nav-btn" id="nav-fal" onclick="setPanel('fal')">
+    <span class="icon">⚑</span>Fallas
+    <span class="nav-badge" id="fal-badge" style="display:none"></span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL FALLA -->
+<div class="modal-bg" id="modal-falla" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>⚑ Reportar falla</h3>
+    <div class="prio-opts" id="prio-opts-falla"></div>
+    <div id="falla-sec-info" style="display:none">
+      <label>Sección / Módulo</label>
+      <div id="falla-sec-display" style="padding:10px 12px;background:#f5f5f3;border-radius:10px;font-size:14px"></div>
+      <label>Item</label>
+      <div id="falla-item-display" style="padding:10px 12px;background:#f5f5f3;border-radius:10px;font-size:14px"></div>
+    </div>
+    <div id="falla-sec-select">
+      <label>Sección</label>
+      <select id="f-seccion" onchange="updateModulos()" style="width:100%;font-size:15px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff"></select>
+      <label>Módulo</label>
+      <select id="f-modulo" onchange="updateItems()" style="width:100%;font-size:15px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff"></select>
+      <label>Item</label>
+      <select id="f-item" style="width:100%;font-size:15px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modal-falla').style.display='none'">Cancelar</button>
+      <button class="btn-confirm" onclick="guardarFalla()">Reportar falla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EQUIPO FALLA -->
+<div class="modal-bg" id="modal-eq-falla" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>🔧 Reportar falla de equipo</h3>
+    <div class="prio-opts" id="prio-opts-eq"></div>
+    <div id="eq-falla-info" style="display:none">
+      <label>Equipo</label>
+      <div id="eq-falla-display" style="padding:10px 12px;background:#f5f5f3;border-radius:10px;font-size:14px"></div>
+    </div>
+    <div id="eq-falla-select">
+      <label>Equipo</label>
+      <select id="eq-select" style="width:100%;font-size:15px;padding:10px 12px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modal-eq-falla').style.display='none'">Cancelar</button>
+      <button class="btn-confirm" onclick="guardarEqFalla()">Reportar falla</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESOLVER -->
+<div class="modal-bg center" id="modal-resolver" style="display:none">
+  <div class="modal center-modal">
+    <h3>✓ Marcar como corregida</h3>
+    <p id="resolver-item-name" style="color:#666;font-size:14px;margin-bottom:12px"></p>
+    <label>Corregido por <span style="color:#bbb">(opcional)</span></label>
+    <input type="text" id="resolver-quien" placeholder="Nombre o turno">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modal-resolver').style.display='none'">Cancelar</button>
+      <button class="btn-confirm green" onclick="confirmarResolver()">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VIERNES -->
+<div class="modal-bg center" id="modal-viernes" style="display:none">
+  <div class="modal center-modal" style="text-align:center">
+    <div style="font-size:48px;margin-bottom:10px">📋</div>
+    <h3>¡Hoy es viernes!</h3>
+    <p style="color:#666;font-size:14px;margin:8px 0 16px">Mañana es el recorrido semanal. ¿Reiniciar los checks?</p>
+    <div style="background:#FEF7E0;border-radius:8px;padding:10px 12px;font-size:12px;color:#854F0B;text-align:left;margin-bottom:16px">
+      ⚠ Las fallas activas se conservan. Solo se borran los checks.
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modal-viernes').style.display='none'">Después</button>
+      <button class="btn-confirm blue" onclick="ejecutarReiniciarRecorrido()">↺ Reiniciar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  CONFIGURACIÓN — pega aquí tu URL del Apps Script
+// ══════════════════════════════════════════════════
+const API_URL = "https://script.google.com/a/macros/mercadolibre.com.mx/s/AKfycbx_3ibsUDyD10YA-Iv9_l1py73I2JoN43T3zX6lZuk1jBEFvsNQqUyIcD_wVsfeObg9/exec";
+
+const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSebKibEjAs_YAdaiiSfmuQr6DI9NfrmlzZta5JZRt_bg1k4Dg/viewform";
+const FORM_E = {tipo:"entry.1626065594",seccion:"entry.273662439",item:"entry.1189743020",quien:"entry.1035721543",desc:"entry.491888733",corr:"entry.1162966493"};
+
+const DATA = {
+  secciones:[
+    {id:"OB",label:"OB — Outbound",modulos:[
+      {id:"OB-S1",label:"Sellers Sección 1",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"}]},
+      {id:"OB-S2",label:"Sellers Sección 2",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"}]},
+      {id:"OB-S3",label:"Sellers Sección 3",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"}]},
+    ]},
+    {id:"IB",label:"IB — Inbound",modulos:[
+      {id:"IB-S1",label:"Sección 1",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"}]},
+      {id:"IB-S2",label:"Sección 2",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"}]},
+      {id:"IB-S3",label:"Sección 3",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"}]},
+    ]},
+    {id:"LB",label:"Lobby",modulos:[
+      {id:"LB-1",label:"Módulo 1",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Tarja 1",t:"tarja"},{n:"Tarja 2",t:"tarja"}]},
+      {id:"LB-2",label:"Módulo 2",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"},{n:"Baño 8",t:"baño"},{n:"Tarja 1",t:"tarja"},{n:"Tarja 2",t:"tarja"}]},
+      {id:"LB-3",label:"Módulo 3",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"},{n:"Baño 8",t:"baño"},{n:"Tarja 1",t:"tarja"},{n:"Tarja 2",t:"tarja"}]},
+      {id:"LB-4",label:"Módulo 4",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"},{n:"Baño 8",t:"baño"},{n:"Tarja 1",t:"tarja"},{n:"Tarja 2",t:"tarja"}]},
+      {id:"LB-5",label:"Módulo 5",items:[{n:"Baño 1",t:"baño"},{n:"Baño 2",t:"baño"},{n:"Baño 3",t:"baño"},{n:"Baño 4",t:"baño"},{n:"Baño 5",t:"baño"},{n:"Baño 6",t:"baño"},{n:"Baño 7",t:"baño"},{n:"Baño 8",t:"baño"},{n:"Baño 9",t:"baño"},{n:"Baño 10",t:"baño"},{n:"Baño 11",t:"baño"},{n:"Baño 12",t:"baño"},{n:"Tarja 1",t:"tarja"},{n:"Tarja 2",t:"tarja"}]},
+    ]},
+  ],
+  equipos:[
+    {id:"ref-1",nombre:"Refrigerador 1",tipo:"refrigerador",ubicacion:"Comedor OB",criticidad:"critica",icono:"🧊"},
+    {id:"ref-2",nombre:"Refrigerador 2",tipo:"refrigerador",ubicacion:"Comedor IB",criticidad:"critica",icono:"🧊"},
+    {id:"ref-3",nombre:"Refrigerador 3",tipo:"refrigerador",ubicacion:"Lobby",criticidad:"urgente",icono:"🧊"},
+    {id:"coc-1",nombre:"Cocineta 1",tipo:"cocineta",ubicacion:"Comedor OB",criticidad:"urgente",icono:"🍳"},
+    {id:"coc-2",nombre:"Cocineta 2",tipo:"cocineta",ubicacion:"Comedor IB",criticidad:"urgente",icono:"🍳"},
+    {id:"mic-1",nombre:"Microondas 1",tipo:"microondas",ubicacion:"Comedor OB",criticidad:"baja",icono:"📡"},
+    {id:"mic-2",nombre:"Microondas 2",tipo:"microondas",ubicacion:"Comedor IB",criticidad:"baja",icono:"📡"},
+    {id:"mic-3",nombre:"Microondas 3",tipo:"microondas",ubicacion:"Sala de descanso",criticidad:"baja",icono:"📡"},
+    {id:"dis-1",nombre:"Dispensador agua 1",tipo:"dispensador",ubicacion:"Pasillo OB",criticidad:"critica",icono:"💧"},
+    {id:"dis-2",nombre:"Dispensador agua 2",tipo:"dispensador",ubicacion:"Pasillo IB",criticidad:"critica",icono:"💧"},
+    {id:"dis-3",nombre:"Dispensador agua 3",tipo:"dispensador",ubicacion:"Lobby",criticidad:"critica",icono:"💧"},
+    {id:"dis-4",nombre:"Dispensador agua 4",tipo:"dispensador",ubicacion:"Comedor OB",criticidad:"urgente",icono:"💧"},
+  ]
+};
+
+const PRIO={
+  critica:{icon:"🔴",label:"Crítica",desc:"Atención inmediata — fuera de servicio"},
+  urgente:{icon:"🟡",label:"Urgente",desc:"Se puede programar a corto plazo"},
+  baja:   {icon:"🔵",label:"Baja",   desc:"Seguimiento sin urgencia"},
+};
+
+// ── Estado en memoria ────────────────────────────────────────────
+let fallas=[], rec={}, recTs={};
+let filtroRec="todos", filtroFal="todas";
+let modalFallaPre={secId:"",modId:"",item:""}, prioFalla="critica";
+let modalEqPre="", prioEq="critica";
+let resolverFallaId=null;
+let panelActual="dash";
+let sincronizando=false;
+
+function ik(s,m,n){return s+"|"+m+"|"+n}
+function now(){return new Date().toLocaleString("es-MX",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"})}
+function normPrio(p){const v=(p||"").toLowerCase();if(v.includes("critica")||v.includes("crítica"))return"critica";if(v.includes("urgente"))return"urgente";return"baja";}
+function getFA(k){return fallas.find(f=>f.key===k&&f.estado==="activa");}
+function criticas(){return fallas.filter(f=>f.estado==="activa"&&normPrio(f.prio)==="critica").length;}
+function urgentes(){return fallas.filter(f=>f.estado==="activa"&&normPrio(f.prio)==="urgente").length;}
+function bajas(){return fallas.filter(f=>f.estado==="activa"&&normPrio(f.prio)==="baja").length;}
+function totAct(){return fallas.filter(f=>f.estado==="activa").length;}
+function allKeys(){const s={};DATA.secciones.forEach(sec=>sec.modulos.forEach(m=>m.items.forEach(it=>{s[ik(sec.id,m.id,it.n)]=false;})));DATA.equipos.forEach(eq=>{s["EE|"+eq.id]=false;});return Object.keys(s);}
+function okCount(){return allKeys().filter(k=>rec[k]).length;}
+function pct(){const t=allKeys().length;return t?Math.round(okCount()/t*100):0;}
+
+function tiempoDesde(tsStr){
+  try{const[d,mo,y,h,mi]=tsStr.match(/\d+/g);const ms=Date.now()-new Date(2000+~~y,~~mo-1,~~d,~~h,~~mi).getTime();if(ms<0)return"—";const dias=Math.floor(ms/86400000),hrs=Math.floor((ms%86400000)/3600000),mins=Math.floor((ms%3600000)/60000);return dias>0?dias+"d "+hrs+"h":hrs>0?hrs+"h "+mins+"min":mins+"min";}catch{return"—";}
+}
+function tiempoMs(tsStr){try{const[d,mo,y,h,mi]=tsStr.match(/\d+/g);return Date.now()-new Date(2000+~~y,~~mo-1,~~d,~~h,~~mi).getTime();}catch{return 0;}}
+
+function showToast(msg,color="#1a1a1a"){const t=document.getElementById("toast");t.textContent=msg;t.style.background=color;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000);}
+
+function setSyncState(state){
+  const dot=document.getElementById("sync-dot");
+  const lbl=document.getElementById("sync-label");
+  dot.className="sync-dot"+(state==="syncing"?" syncing":state==="error"?" error":"");
+  lbl.textContent=state==="syncing"?"Sincronizando...":state==="error"?"Sin conexión":("Actualizado "+now().split(",")[1]?.trim());
+}
+
+// ── API CALLS ────────────────────────────────────────────────────
+async function apiGet(params){
+  const url=API_URL+"?"+new URLSearchParams(params).toString();
+  const r=await fetch(url,{method:"GET",mode:"cors"});
+  return r.json();
+}
+
+async function apiPost(data){
+  // Usar GET con parámetro para evitar CORS en redes corporativas
+  const url=API_URL+"?data="+encodeURIComponent(JSON.stringify(data));
+  try{
+    const r=await fetch(url,{method:"GET",mode:"cors"});
+    return r.json();
+  }catch{
+    // Fallback: imagen pixel (no-cors)
+    return new Promise(resolve=>{
+      const img=new Image();
+      img.onload=img.onerror=()=>resolve({ok:true});
+      img.src=url;
+    });
+  }
+}
+
+// ── SINCRONIZAR ──────────────────────────────────────────────────
+async function sincronizar(){
+  if(sincronizando)return;
+  sincronizando=true;
+  setSyncState("syncing");
+  try{
+    const[rf,rr]=await Promise.all([
+      apiGet({accion:"leerFallas"}),
+      apiGet({accion:"leerRecorrido"})
+    ]);
+    if(rf.fallas) fallas=rf.fallas.map(f=>({...f,prio:normPrio(f.prio)}));
+    if(rr.rec)   rec=rr.rec;
+    if(rr.recTs) recTs=rr.recTs;
+    setSyncState("ok");
+    renderAll();
+    showToast("✓ Datos actualizados","#0F6E56");
+  }catch(e){
+    setSyncState("error");
+    showToast("Sin conexión — datos locales","#854F0B");
+    // Usar datos del localStorage como fallback
+    cargarLocal();
+    renderAll();
+  }
+  sincronizando=false;
+}
+
+// ── FALLBACK LOCAL ───────────────────────────────────────────────
+function guardarLocal(){try{localStorage.setItem("cs_fallas",JSON.stringify(fallas));localStorage.setItem("cs_rec",JSON.stringify(rec));localStorage.setItem("cs_recTs",JSON.stringify(recTs));}catch(e){}}
+function cargarLocal(){try{const f=localStorage.getItem("cs_fallas");const r=localStorage.getItem("cs_rec");const t=localStorage.getItem("cs_recTs");if(f)fallas=JSON.parse(f).map(x=>({...x,prio:normPrio(x.prio)}));if(r)rec=JSON.parse(r);if(t)recTs=JSON.parse(t);}catch(e){}}
+
+// ── PANEL / NAV ──────────────────────────────────────────────────
+function setPanel(p){
+  document.querySelectorAll(".panel").forEach(el=>el.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(el=>el.classList.remove("active"));
+  document.getElementById("panel-"+p).classList.add("active");
+  document.getElementById("nav-"+p).classList.add("active");
+  panelActual=p;
+  renderPanel(p);
+}
+function renderPanel(p){if(p==="dash")renderDash();if(p==="rec")renderRec();if(p==="eq")renderEq();if(p==="fal")renderFal();updateBanners();updateBadge();}
+function renderAll(){renderPanel(panelActual);updateBanners();updateBadge();guardarLocal();}
+
+function updateBanners(){
+  const cr=criticas(),ur=urgentes();
+  let h="";
+  if(cr>0)h+=`<div class="banner banner-critica"><span style="font-size:20px">🔴</span><span style="flex:1">Fallas críticas — atención inmediata</span><strong>${cr}</strong></div>`;
+  else if(ur>0)h+=`<div class="banner banner-urgente"><span style="font-size:20px">🟡</span><span style="flex:1">Fallas urgentes pendientes</span><strong>${ur}</strong></div>`;
+  document.getElementById("banners").innerHTML=h;
+}
+
+function updateBadge(){
+  const tot=totAct();const badge=document.getElementById("fal-badge");const cr=criticas(),ur=urgentes();
+  if(tot>0){badge.style.display="block";badge.textContent=tot;badge.style.background=cr>0?"#E24B4A":ur>0?"#EF9F27":"#378ADD";}
+  else badge.style.display="none";
+}
+
+// ── ABRIRFORM GOOGLE ─────────────────────────────────────────────
+function abrirForm(payload){
+  const tipo=payload.tipo||"",prio=normPrio(payload.prioridad||"");
+  if(tipo==="recorrido_ok"||tipo==="equipo_ok")return;
+  let tv;
+  if(tipo==="falla_resuelta")tv="✅ Falla corregida / resuelta";
+  else if(prio==="critica")tv="🔴 Falla nueva — requiere atención";
+  else if(prio==="urgente")tv="🟡 Falla urgente — programar a corto plazo";
+  else tv="🔵 Falla baja — seguimiento sin urgencia";
+  function enc(v){return encodeURIComponent(v||"");}
+  let url=FORM_BASE+"?usp=pp_url";
+  url+="&"+FORM_E.tipo+"="+enc(tv);
+  url+="&"+FORM_E.seccion+"="+enc(payload.seccion||"");
+  url+="&"+FORM_E.item+"="+enc(payload.item||"");
+  if(payload.quien)url+="&"+FORM_E.quien+"="+enc(payload.quien);
+  if(payload.nota)url+="&"+FORM_E.desc+"="+enc(payload.nota);
+  if(payload.quienResolvio)url+="&"+FORM_E.corr+"="+enc(payload.quienResolvio);
+  window.open(url,"_blank");
+}
+
+// ── TOGGLE RECORRIDO ─────────────────────────────────────────────
+async function toggle(k){
+  if(getFA(k))return;
+  rec[k]=!rec[k];
+  const ts=rec[k]?now():"";
+  if(rec[k])recTs[k]=ts; else delete recTs[k];
+  renderAll();
+  try{await apiPost({accion:"guardarRecorrido",key:k,value:rec[k],ts});}catch(e){}
+}
+
+async function toggleEq(eqId){
+  const k="EE|"+eqId;if(getFA(k))return;
+  rec[k]=!rec[k];const ts=rec[k]?now():"";
+  if(rec[k])recTs[k]=ts;else delete recTs[k];
+  renderAll();
+  try{await apiPost({accion:"guardarRecorrido",key:k,value:rec[k],ts});}catch(e){}
+}
+
+async function ejecutarReiniciarRecorrido(){
+  document.getElementById("modal-viernes").style.display="none";
+  rec={};recTs={};renderAll();
+  try{await apiPost({accion:"reiniciarRecorrido"});}catch(e){}
+  showToast("↺ Recorrido reiniciado","#1a73e8");
+}
+
+// ── MODALES ──────────────────────────────────────────────────────
+function abrirModalFalla(secId,modId,item){
+  modalFallaPre={secId:secId||"",modId:modId||"",item:item||""};
+  prioFalla="critica";renderPrioOpts("prio-opts-falla","falla");
+  if(secId&&modId&&item){
+    const sec=DATA.secciones.find(s=>s.id===secId);
+    const mod=sec?.modulos.find(m=>m.id===modId);
+    document.getElementById("falla-sec-display").textContent=(sec?.label||"")+" › "+(mod?.label||"");
+    document.getElementById("falla-item-display").textContent=item;
+    document.getElementById("falla-sec-info").style.display="block";
+    document.getElementById("falla-sec-select").style.display="none";
+  }else{
+    document.getElementById("falla-sec-info").style.display="none";
+    document.getElementById("falla-sec-select").style.display="block";
+    const sel=document.getElementById("f-seccion");
+    sel.innerHTML='<option value="">— Selecciona —</option>'+DATA.secciones.map(s=>`<option value="${s.id}">${s.label}</option>`).join("");
+    document.getElementById("f-modulo").innerHTML="<option value=''>—</option>";
+    document.getElementById("f-item").innerHTML="<option value=''>—</option>";
+  }
+  document.getElementById("modal-falla").style.display="flex";
+}
+
+function abrirModalEqFalla(eqId){
+  modalEqPre=eqId||"";prioEq="critica";renderPrioOpts("prio-opts-eq","eq");
+  if(eqId){
+    const eq=DATA.equipos.find(e=>e.id===eqId);
+    document.getElementById("eq-falla-display").textContent=(eq?.icono||"")+" "+(eq?.nombre||"")+" — 📍 "+(eq?.ubicacion||"");
+    document.getElementById("eq-falla-info").style.display="block";
+    document.getElementById("eq-falla-select").style.display="none";
+  }else{
+    document.getElementById("eq-falla-info").style.display="none";
+    document.getElementById("eq-falla-select").style.display="block";
+    document.getElementById("eq-select").innerHTML='<option value="">— Selecciona —</option>'+DATA.equipos.map(e=>`<option value="${e.id}">${e.icono} ${e.nombre} — ${e.ubicacion}</option>`).join("");
+  }
+  document.getElementById("modal-eq-falla").style.display="flex";
+}
+
+function renderPrioOpts(id,type){
+  document.getElementById(id).innerHTML=Object.entries(PRIO).map(([k,p])=>`
+    <div class="prio-opt ${k===(type==="falla"?prioFalla:prioEq)?"sel-"+k:""}" onclick="selPrio('${k}','${type}')">
+      <span class="prio-icon">${p.icon}</span>
+      <div class="prio-text"><div class="prio-name">${p.label}</div><div class="prio-desc">${p.desc}</div></div>
+      ${k===(type==="falla"?prioFalla:prioEq)?'<span class="prio-check">✓</span>':""}
+    </div>`).join("");
+}
+
+function selPrio(p,type){if(type==="falla")prioFalla=p;else prioEq=p;renderPrioOpts(type==="falla"?"prio-opts-falla":"prio-opts-eq",type);}
+function updateModulos(){const sId=document.getElementById("f-seccion").value;const sec=DATA.secciones.find(s=>s.id===sId);document.getElementById("f-modulo").innerHTML="<option value=''>—</option>"+(sec?sec.modulos.map(m=>`<option value="${m.id}">${m.label}</option>`).join(""):"");document.getElementById("f-item").innerHTML="<option value=''>—</option>";}
+function updateItems(){const sId=document.getElementById("f-seccion").value;const mId=document.getElementById("f-modulo").value;const sec=DATA.secciones.find(s=>s.id===sId);const mod=sec?.modulos.find(m=>m.id===mId);document.getElementById("f-item").innerHTML="<option value=''>—</option>"+(mod?mod.items.map(it=>`<option value="${it.n}">${it.n}</option>`).join(""):"");}
+
+async function guardarFalla(){
+  let secId=modalFallaPre.secId,modId=modalFallaPre.modId,item=modalFallaPre.item;
+  if(!secId){secId=document.getElementById("f-seccion").value;modId=document.getElementById("f-modulo").value;item=document.getElementById("f-item").value;}
+  if(!secId||!modId||!item){showToast("Selecciona sección, módulo e item","#854F0B");return;}
+  const sec=DATA.secciones.find(s=>s.id===secId);
+  const mod=sec.modulos.find(m=>m.id===modId);
+  const ts=now();
+  const secLabel=sec.label+" › "+mod.label;
+  const nueva={key:ik(secId,modId,item),seccion:secLabel,modulo:mod.label,item,prio:prioFalla,nota:"",quien:"",estado:"activa",tsRep:ts,tsRes:"",quienR:"",tRes:"",tipo:"instalacion",ubicacion:mod.label};
+  document.getElementById("modal-falla").style.display="none";
+  showToast("⚑ Guardando...","#1a73e8");
+  try{
+    const r=await apiPost({accion:"guardarFalla",...nueva});
+    if(r.ok){nueva.id=r.id;fallas.push(nueva);renderAll();showToast("⚑ Falla registrada","#A32D2D");}
+  }catch(e){
+    nueva.id=Date.now();fallas.push(nueva);renderAll();showToast("⚑ Guardado local (sin conexión)","#854F0B");
+  }
+  abrirForm({tipo:"falla_nueva",item,seccion:secLabel,prioridad:prioFalla,fecha:ts});
+}
+
+async function guardarEqFalla(){
+  const eqId=modalEqPre||document.getElementById("eq-select").value;
+  if(!eqId){showToast("Selecciona un equipo","#854F0B");return;}
+  const eq=DATA.equipos.find(e=>e.id===eqId);
+  const ts=now();
+  const nueva={key:"EE|"+eqId,seccion:"Equipos menores — "+eq.ubicacion,modulo:eq.tipo,item:eq.nombre,ubicacion:eq.ubicacion,prio:prioEq,nota:"",quien:"",estado:"activa",tsRep:ts,tsRes:"",quienR:"",tRes:"",tipo:"equipo"};
+  document.getElementById("modal-eq-falla").style.display="none";
+  showToast("⚑ Guardando...","#1a73e8");
+  try{
+    const r=await apiPost({accion:"guardarFalla",...nueva});
+    if(r.ok){nueva.id=r.id;fallas.push(nueva);renderAll();showToast("⚑ Falla de equipo registrada","#A32D2D");}
+  }catch(e){nueva.id=Date.now();fallas.push(nueva);renderAll();}
+  abrirForm({tipo:"falla_nueva",item:eq.nombre,seccion:"Equipos menores — "+eq.ubicacion,prioridad:prioEq,fecha:ts});
+}
+
+function abrirResolver(id){
+  resolverFallaId=id;
+  const f=fallas.find(x=>x.id==id);
+  document.getElementById("resolver-item-name").textContent=f?.item||"";
+  document.getElementById("resolver-quien").value="";
+  document.getElementById("modal-resolver").style.display="flex";
+  setTimeout(()=>document.getElementById("resolver-quien").focus(),300);
+}
+
+async function confirmarResolver(){
+  const quien=document.getElementById("resolver-quien").value.trim();
+  const t2=now();
+  let updated;
+  fallas=fallas.map(f=>{
+    if(f.id!=resolverFallaId)return f;
+    let tRes="—";
+    try{const p=s=>{const[d,mo,y,h,mi]=s.match(/\d+/g);return new Date(2000+~~y,~~mo-1,~~d,~~h,~~mi);};const diff=p(t2)-p(f.tsRep);if(diff>0){const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000);tRes=(h?h+"h ":"")+m+"min";}}catch{}
+    updated={...f,estado:"resuelta",tsRes:t2,quienR:quien||"—",tRes};
+    return updated;
+  });
+  document.getElementById("modal-resolver").style.display="none";
+  renderAll();
+  try{await apiPost({accion:"resolverFalla",id:resolverFallaId,tsRes:t2,quienR:quien||"—",tRes:updated?.tRes||"—"});}catch(e){}
+  if(updated){
+    abrirForm({tipo:"falla_resuelta",item:updated.item,seccion:updated.seccion,prioridad:updated.prio,quienResolvio:quien||"—",tsRes:t2});
+    showToast("✓ Corregida — confirma en el form","#0F6E56");
+  }
+}
+
+// ── RENDERS ──────────────────────────────────────────────────────
+function renderDash(){
+  const cr=criticas(),ur=urgentes(),ba=bajas(),tot=totAct();
+  const p=pct(),ok=okCount(),total=allKeys().length;
+  const resueltas=fallas.filter(f=>f.estado==="resuelta").length;
+  const barColor=p===100?"#639922":p>=50?"#EF9F27":"#E24B4A";
+  let html=`
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-num" style="color:${tot>0?"#A32D2D":"#0F6E56"}">${tot}</div><div class="stat-label">Fallas activas</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#0F6E56">${resueltas}</div><div class="stat-label">Resueltas</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#1a73e8">${p}%</div><div class="stat-label">Recorrido</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#555">${ok}/${total}</div><div class="stat-label">Verificados</div></div>
+    </div>
+    <div class="progress-wrap">
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span>Avance del recorrido</span><span style="font-weight:600;color:${barColor}">${p}%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${p}%;background:${barColor}"></div></div>
+      <div style="font-size:11px;color:#aaa">${ok} de ${total} items verificados</div>
+    </div>
+    <div class="section-title">Fallas activas</div>`;
+
+  const activas=[...fallas].filter(f=>f.estado==="activa").map(f=>({...f,ms:tiempoMs(f.tsRep)})).sort((a,b)=>b.ms-a.ms);
+  if(activas.length===0){
+    html+=`<div style="background:#E6F4EA;border-radius:12px;padding:16px;text-align:center;color:#0F6E56;font-weight:500">✅ Sin fallas activas</div>`;
+  }else{
+    activas.forEach(f=>{
+      const p2=PRIO[normPrio(f.prio)]||PRIO.baja;
+      const t=tiempoDesde(f.tsRep);
+      const dias=Math.floor(f.ms/86400000);
+      const color=dias>=1?"#A32D2D":p2===PRIO.critica?"#A32D2D":p2===PRIO.urgente?"#854F0B":"#185FA5";
+      html+=`<div class="dash-falla">
+        <span style="font-size:22px">${p2.icon}</span>
+        <div style="flex:1"><div style="font-size:14px;font-weight:600">${f.item}</div><div style="font-size:12px;color:#888">${f.seccion}</div></div>
+        <div style="text-align:right;flex-shrink:0"><div style="font-size:15px;font-weight:700;color:${color}">${t}</div><div style="font-size:10px;color:#aaa">desde reporte</div></div>
+        <div style="width:5px;height:44px;border-radius:3px;background:${color};flex-shrink:0;margin-left:4px"></div>
+      </div>`;
+    });
+  }
+
+  const res=[...fallas].filter(f=>f.estado==="resuelta").slice(-4).reverse();
+  if(res.length>0){
+    html+=`<div class="section-title">Últimas corregidas</div>`;
+    res.forEach(f=>{html+=`<div style="background:#EAF3DE;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px"><span style="font-size:18px">✓</span><div style="flex:1"><div style="font-size:13px;font-weight:500">${f.item}</div><div style="font-size:11px;color:#666">${f.seccion}</div></div><div style="font-size:12px;color:#0F6E56;font-weight:600">${f.tRes||"—"}</div></div>`;});
+  }
+  document.getElementById("dash-content").innerHTML=html;
+}
+
+function renderRec(){
+  let html="";
+  DATA.secciones.forEach(sec=>{
+    let sh="";
+    sec.modulos.forEach(mod=>{
+      const vis=mod.items.filter(it=>{
+        const k=ik(sec.id,mod.id,it.n);const fa=getFA(k);
+        if(filtroRec==="todos")return true;if(filtroRec==="pendiente")return!rec[k];if(filtroRec==="falla")return!!fa;return it.t===filtroRec;
+      });
+      if(!vis.length)return;
+      sh+=`<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;color:#555;margin-bottom:6px">${mod.label}</div><div class="items-wrap">`;
+      vis.forEach(it=>{
+        const k=ik(sec.id,mod.id,it.n);const fa=getFA(k);const done=!fa&&rec[k];
+        const cls=fa?"falla-"+normPrio(fa.prio):done?"ok":"";
+        const sub=fa?`${PRIO[normPrio(fa.prio)].icon} ${PRIO[normPrio(fa.prio)].label}`:done?"✓":"";
+        sh+=`<div class="item-chip ${cls}" onclick="${fa?"":"toggle('"+k+"')"}" style="${fa?"cursor:default":""}">
+          <span class="item-dot"></span>
+          <span style="flex:1;font-size:13px">${it.n}${sub?`<span style="display:block;font-size:10px;opacity:.8">${sub}</span>`:""}</span>
+          <span class="item-flag" onclick="event.stopPropagation();abrirModalFalla('${sec.id}','${mod.id}','${it.n}')">⚑</span>
+        </div>`;
+      });
+      sh+="</div></div>";
+    });
+    if(!sh)return;
+    html+=`<div><div class="section-title">${sec.label}</div>${sh}</div>`;
+  });
+  html+=`<div style="margin-top:14px;text-align:center"><button onclick="document.getElementById('modal-viernes').style.display='flex'" style="padding:10px 24px;font-size:13px;border:1.5px solid #F09595;border-radius:20px;background:#fff;color:#A32D2D;cursor:pointer">↺ Reiniciar recorrido</button></div>`;
+  document.getElementById("rec-content").innerHTML=html;
+}
+
+function renderEq(){
+  const tipos=[...new Set(DATA.equipos.map(e=>e.tipo))];
+  const ico={refrigerador:"🧊",cocineta:"🍳",microondas:"📡",dispensador:"💧"};
+  let html="";
+  tipos.forEach(tipo=>{
+    html+=`<div class="section-title">${ico[tipo]||"🔧"} ${tipo.charAt(0).toUpperCase()+tipo.slice(1)}s</div>`;
+    DATA.equipos.filter(e=>e.tipo===tipo).forEach(eq=>{
+      const k="EE|"+eq.id;const fa=getFA(k);const done=!fa&&rec[k];
+      const cls=fa?"falla":done?"ok":"";
+      const st=fa?"⚠ Falla activa":done?"✓ OK":"Pendiente";
+      const ss=fa?"background:#FCEBEB;color:#A32D2D":done?"background:#EAF3DE;color:#3B6D11":"background:#f0f0f0;color:#666";
+      html+=`<div class="eq-card ${cls}" onclick="${fa?"":"toggleEq('"+eq.id+"')"}" style="${fa?"cursor:default":""}">
+        <span class="eq-icon">${eq.icono}</span>
+        <div class="eq-info">
+          <div class="eq-nombre">${eq.nombre}</div>
+          <div class="eq-ubic">📍 ${eq.ubicacion}</div>
+          ${fa?`<div style="font-size:11px;color:#A32D2D;margin-top:2px">${PRIO[normPrio(fa.prio)].icon} ${PRIO[normPrio(fa.prio)].label} · ${fa.tsRep}</div>`:""}
+          ${done&&!fa?`<div style="font-size:11px;color:#0F6E56;margin-top:2px">✓ Verificado ${recTs[k]||""}</div>`:""}
+        </div>
+        <span class="eq-status" style="${ss}">${st}</span>
+        <span style="font-size:18px;cursor:pointer;padding:4px;flex-shrink:0" onclick="event.stopPropagation();abrirModalEqFalla('${eq.id}')">⚑</span>
+      </div>`;
+    });
+  });
+  document.getElementById("eq-content").innerHTML=html;
+}
+
+function renderFal(){
+  const po={critica:0,urgente:1,baja:2};
+  const lista=fallas.filter(f=>{
+    const pr=normPrio(f.prio);
+    if(filtroFal==="todas")return true;if(filtroFal==="resuelta")return f.estado==="resuelta";
+    return f.estado==="activa"&&pr===filtroFal;
+  }).sort((a,b)=>{if(a.estado!==b.estado)return a.estado==="activa"?-1:1;return(po[normPrio(a.prio)]||2)-(po[normPrio(b.prio)]||2)||b.id-a.id;});
+  if(!lista.length){document.getElementById("fal-content").innerHTML=`<div style="text-align:center;padding:3rem;color:#aaa;font-size:14px">Sin fallas en este filtro</div>`;return;}
+  document.getElementById("fal-content").innerHTML=lista.map(f=>{
+    const act=f.estado==="activa";const pr=normPrio(f.prio);const p2=PRIO[pr]||PRIO.baja;
+    return`<div class="falla-card ${act?pr:"resuelta"}">
+      <div class="falla-badges">
+        <span class="badge badge-${pr}">${p2.icon} ${p2.label}</span>
+        <span class="badge ${act?"badge-activa":"badge-resuelta"}">${act?"Activa":"Resuelta"}</span>
+        ${f.tipo==="equipo"?'<span class="badge" style="background:#E6F1FB;color:#185FA5">🔧 Equipo</span>':""}
+      </div>
+      <div class="falla-nombre">${f.item}</div>
+      <div class="falla-loc">${f.seccion}</div>
+      <div class="falla-meta">
+        <span>Reportado</span><span>${f.tsRep||"—"}</span>
+        <span>Por</span><span>${f.quien||"—"}</span>
+        ${!act?`<span>Corregido</span><span>${f.tsRes||"—"}</span><span>Por</span><span>${f.quienR||"—"}</span><span>Tiempo</span><span>${f.tRes||"—"}</span>`:""}
+      </div>
+      ${act?`<div class="falla-actions">
+        <button class="btn-resolver" onclick="abrirResolver(${f.id})">✓ Marcar corregida</button>
+        <button class="btn-eliminar" onclick="eliminarFalla(${f.id})">✕</button>
+      </div>`:""}
+    </div>`;
+  }).join("");
+}
+
+async function eliminarFalla(id){
+  fallas=fallas.filter(f=>f.id!=id);renderAll();
+  try{await apiPost({accion:"eliminarFalla",id});}catch(e){}
+}
+
+function setFiltro(f,btn){filtroRec=f;document.querySelectorAll("#filters-rec .filter-chip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderRec();}
+function setFiltroFalla(f,btn){filtroFal=f;document.querySelectorAll(".filters .filter-chip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderFal();}
+
+// ── AVISO VIERNES ────────────────────────────────────────────────
+function checkViernes(){
+  const hoy=new Date();if(hoy.getDay()!==5)return;
+  const clave="viernes_"+hoy.toLocaleDateString("es-MX");
+  if(localStorage.getItem("cs_aviso_viernes")===clave)return;
+  if(okCount()>0){localStorage.setItem("cs_aviso_viernes",clave);setTimeout(()=>document.getElementById("modal-viernes").style.display="flex",1500);}
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+cargarLocal(); // Mostrar datos locales mientras carga
+renderAll();
+sincronizar(); // Cargar datos de Sheets
+checkViernes();
+// Auto-sincronizar cada 30 segundos
+setInterval(sincronizar, 30000);
+</script>
+</body>
+</html>

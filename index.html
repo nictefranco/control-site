@@ -128,7 +128,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <div id="banners" style="padding:8px 16px 0"></div>
 
 <div id="panel-dash" class="panel active">
-  <div id="dash-content"><div class="loading"><span class="loading-spinner">⟳</span>Cargando datos...</div></div>
+  <div id="dash-content"></div>
 </div>
 <div id="panel-rec" class="panel">
   <div class="filters" id="filters-rec">
@@ -138,7 +138,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
     <span class="filter-chip" onclick="setFiltro('pendiente',this)">Pendientes</span>
     <span class="filter-chip" onclick="setFiltro('falla',this)">Con falla</span>
   </div>
-  <div id="rec-content"><div class="loading"><span class="loading-spinner">⟳</span>Cargando...</div></div>
+  <div id="rec-content"></div>
 </div>
 <div id="panel-eq" class="panel">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -832,4 +832,6 @@ function setFiltroFalla(f,btn){filtroFal=f;document.querySelectorAll(".filters .
 // ── AVISO VIERNES ────────────────────────────────────────────────
 function checkViernes(){
   const hoy=new Date();if(hoy.getDay()!==5)return;
-  const clave="
+  const clave="viernes_"+hoy.toLocaleDateString("es-MX");
+  if(localStorage.getItem("cs_aviso_viernes")===clave)return;
+  if(okCount()>0){localStorage.setItem("cs_aviso_vier

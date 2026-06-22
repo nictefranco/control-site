@@ -693,19 +693,20 @@ function renderDash(){
   const p=pct(),ok=okCount(),total=allKeys().length;
   const resueltas=fallas.filter(f=>f.estado==="resuelta").length;
   const barColor=p===100?"#639922":p>=50?"#EF9F27":"#E24B4A";
-  let html=`
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-num" style="color:${tot>0?"#A32D2D":"#0F6E56"}">${tot}</div><div class="stat-label">Fallas activas</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:#0F6E56">${resueltas}</div><div class="stat-label">Resueltas</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:#1a73e8">${p}%</div><div class="stat-label">Recorrido</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:#555">${ok}/${total}</div><div class="stat-label">Verificados</div></div>
-    </div>
-    <div class="progress-wrap">
-      <div style="display:flex;justify-content:space-between;font-size:13px"><span>Avance del recorrido</span><span style="font-weight:600;color:${barColor}">${p}%</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${p}%;background:${barColor}"></div></div>
-      <div style="font-size:11px;color:#aaa">${ok} de ${total} items verificados</div>
-    </div>
-    <div class="section-title">Fallas activas</div>`;
+  const totColor=tot>0?"#A32D2D":"#0F6E56";
+  let html="";
+  html+='<div class="stats-grid">';
+  html+='<div class="stat-card"><div class="stat-num" style="color:'+totColor+'">'+tot+'</div><div class="stat-label">Fallas activas</div></div>';
+  html+='<div class="stat-card"><div class="stat-num" style="color:#0F6E56">'+resueltas+'</div><div class="stat-label">Resueltas</div></div>';
+  html+='<div class="stat-card"><div class="stat-num" style="color:#1a73e8">'+p+'%</div><div class="stat-label">Recorrido</div></div>';
+  html+='<div class="stat-card"><div class="stat-num" style="color:#555">'+ok+'/'+total+'</div><div class="stat-label">Verificados</div></div>';
+  html+='</div>';
+  html+='<div class="progress-wrap">';
+  html+='<div style="display:flex;justify-content:space-between;font-size:13px"><span>Avance del recorrido</span><span style="font-weight:600;color:'+barColor+'">'+p+'%</span></div>';
+  html+='<div class="progress-bar"><div class="progress-fill" style="width:'+p+'%;background:'+barColor+'"></div></div>';
+  html+='<div style="font-size:11px;color:#aaa">'+ok+' de '+total+' items verificados</div>';
+  html+='</div>';
+  html+='<div class="section-title">Fallas activas</div>';
 
   const activas=[...fallas].filter(f=>f.estado==="activa").map(f=>({...f,ms:tiempoMs(f.tsRep)})).sort((a,b)=>b.ms-a.ms);
   if(activas.length===0){
@@ -834,4 +835,15 @@ function checkViernes(){
   const hoy=new Date();if(hoy.getDay()!==5)return;
   const clave="viernes_"+hoy.toLocaleDateString("es-MX");
   if(localStorage.getItem("cs_aviso_viernes")===clave)return;
-  if(okCount()>0){localStorage.setItem("cs_aviso_vier
+  if(okCount()>0){localStorage.setItem("cs_aviso_viernes",clave);setTimeout(()=>document.getElementById("modal-viernes").style.display="flex",1500);}
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+cargarLocal();
+renderAll();
+checkViernes();
+// NO sincronizar automáticamente al cargar — solo manual con ↻
+// Esto evita que la app se quede cargando
+</script>
+</body>
+</html>

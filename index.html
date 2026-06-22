@@ -376,21 +376,52 @@ async function leerSheetCSV(sheetName){
 }
 
 function parseCSV(text){
-  const lines = text.trim().split("\n");
-  if(lines.length < 2) return [];
-  const hdrs = lines[0].split(",").map(h=>h.replace(/^"|"$/g,"").trim());
-  return lines.slice(1).map(line=>{
-    // Parser simple que maneja comillas
+  // Parser CSV robusto que maneja comillas, saltos de línea y comas dentro de valores
+  function parseLine(line){
     const vals=[];
-    let cur="", inQ=false;
-    for(let i=0;i<line.length;i++){
-      if(line[i]==='"'){inQ=!inQ;}
-      else if(line[i]===","&&!inQ){vals.push(cur);cur="";}
-      else cur+=line[i];
+    let cur="", inQ=false, i=0;
+    while(i<line.length){
+      const c=line[i];
+      if(c==='"'){
+        if(inQ && line[i+1]==='"'){cur+='"';i+=2;continue;} // comilla escapada
+        inQ=!inQ;i++;continue;
+      }
+      if(c===',' && !inQ){vals.push(cur);cur="";i++;continue;}
+      cur+=c;i++;
     }
     vals.push(cur);
+    return vals.map(v=>v.trim());
+  }
+
+  // Dividir respetando comillas que pueden tener saltos de línea
+  const rows=[];
+  let cur="", inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c==='"'){
+      if(inQ && text[i+1]==='"'){cur+='"';i++;continue;}
+      inQ=!inQ;cur+=c;continue;
+    }
+    if((c==='\n'||c==='\r') && !inQ){
+      if(cur.trim()||rows.length===0){rows.push(cur);cur="";}
+      if(c==='\r' && text[i+1]==='\n')i++;
+      continue;
+    }
+    cur+=c;
+  }
+  if(cur.trim())rows.push(cur);
+
+  if(rows.length<2)return[];
+  const hdrs=parseLine(rows[0]);
+  return rows.slice(1).filter(r=>r.trim()).map(row=>{
+    const vals=parseLine(row);
     const obj={};
-    hdrs.forEach((h,i)=>obj[h]=(vals[i]||"").replace(/^"|"$/g,"").trim());
+    hdrs.forEach((h,i)=>{
+      let v=(vals[i]||"").trim();
+      // Quitar comillas externas si las tiene
+      if(v.startsWith('"')&&v.endsWith('"'))v=v.slice(1,-1);
+      obj[h]=v;
+    });
     return obj;
   });
 }
@@ -829,23 +860,4 @@ async function eliminarFalla(id){
 }
 
 function setFiltro(f,btn){filtroRec=f;document.querySelectorAll("#filters-rec .filter-chip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderRec();}
-function setFiltroFalla(f,btn){filtroFal=f;document.querySelectorAll(".filters .filter-chip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderFal();}
-
-// ── AVISO VIERNES ────────────────────────────────────────────────
-function checkViernes(){
-  const hoy=new Date();if(hoy.getDay()!==5)return;
-  const clave="viernes_"+hoy.toLocaleDateString("es-MX");
-  if(localStorage.getItem("cs_aviso_viernes")===clave)return;
-  if(okCount()>0){localStorage.setItem("cs_aviso_viernes",clave);setTimeout(()=>document.getElementById("modal-viernes").style.display="flex",1500);}
-}
-
-// ── INIT ─────────────────────────────────────────────────────────
-cargarLocal(); // Mostrar datos locales mientras carga
-renderAll();
-sincronizar(); // Cargar datos de Sheets
-checkViernes();
-// Auto-sincronizar cada 30 segundos
-setInterval(sincronizar, 30000);
-</script>
-</body>
-</html>
+function setFiltroFalla(f,btn){filtroFal=f;document.querySelectorAll(".filters .filter-

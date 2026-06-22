@@ -431,91 +431,42 @@ async function sincronizar(){
   sincronizando=true;
   setSyncState("syncing");
   try{
-    // Leer de App_Fallas en la hoja personal de Gmail
-    const HOJA = "App_Fallas";
-    const filas = await leerSheetCSV(HOJA);
+    // Leer de App_Fallas — columnas: id,key,seccion,modulo,item,prio,nota,quien,estado,tsRep,tsRes,quienR,tRes,tipo,ubicacion
+    const filas = await leerSheetCSV("App_Fallas");
+    if(filas.length > 0){
+      fallas = filas
+        .filter(f => f.item && f.item.trim())
+        .map((f,i) => ({
+          id:      parseInt(f.id) || (i+1),
+          key:     f.key     || "",
+          seccion: f.seccion || "",
+          modulo:  f.modulo  || "",
+          item:    f.item    || "",
+          prio:    normPrio(f.prio || "baja"),
+          nota:    f.nota    || "",
+          quien:   f.quien   || "",
+          estado:  f.estado  || "activa",
+          tsRep:   f.tsRep   || "",
+          tsRes:   f.tsRes   || null,
+          quienR:  f.quienR  || null,
+          tRes:    f.tRes    || null,
+          tipo:    f.tipo    || "instalacion",
+          ubicacion: f.ubicacion || "",
+        }));
+    }
 
-    // Reconstruir fallas desde el form
-    // Columnas: Marca temporal, Tipo de reporte, Sección / Área, Item / Equipo,
-    //           Reportado por, Descripción, Corregido por
-    const mapaFallas = {};
-    let nextId = 1;
-
-    filas.forEach(f => {
-      const tipo   = f["Tipo de reporte"] || "";
-      const secc   = f["Sección / Área"] || "";
-      const item   = (f["Item / Equipo"] || "").trim();
-      const quien  = f["Reportado por"] || "";
-      const desc   = f["Descripción (opcional)"] || "";
-      const corr   = f["Corregido por (solo si marcas \'Falla corregida\')"] || 
-                     f["Corregido por"] || "";
-      const ts     = f["Marca temporal"] || "";
-      const clave  = secc + "|" + item;
-      if(!item) return;
-
-      if(tipo.includes("corregida") || tipo.includes("resuelta")){
-        if(mapaFallas[clave]){
-          // Calcular tiempo de resolución
-          let tRes = "—";
-          try{
-            const p=s=>{
-              // formato dd/M/yyyy H:mm:ss o dd/MM/yyyy HH:mm
-              const parts = s.replace(/,/g,"").trim().split(/[\s\/]/);
-              return new Date(s);
-            };
-            const t1 = new Date(mapaFallas[clave].tsRep.replace(/(\d+)\/(\d+)\/(\d+)\s(.*)/, "$3-$2-$1 $4"));
-            const t2 = new Date(ts.replace(/(\d+)\/(\d+)\/(\d+)\s(.*)/, "$3-$2-$1 $4"));
-            const diff = t2 - t1;
-            if(diff > 0){
-              const h=Math.floor(diff/3600000), m=Math.floor((diff%3600000)/60000);
-              tRes = (h?h+"h ":"") + m + "min";
-            }
-          }catch(e){}
-          mapaFallas[clave] = {...mapaFallas[clave], estado:"resuelta", tsRes:ts, quienR:corr||"—", tRes};
-        }
-      } else if(tipo.includes("falla") || tipo.includes("nueva") || tipo.includes("urgente") || tipo.includes("baja")){
-        // Determinar prioridad desde el tipo
-        let prio = "baja";
-        if(tipo.includes("nueva") || tipo.includes("requiere")) prio = "critica";
-        else if(tipo.includes("urgente")) prio = "urgente";
-
-        // Generar key compatible con la app
-        // Intentar mapear sección a secId/modId
-        const key = "FORM|" + clave;
-        mapaFallas[clave] = {
-          id: nextId++,
-          key,
-          seccion: secc,
-          modulo: secc.split("›")[1]?.trim() || secc,
-          item,
-          prio,
-          nota: desc,
-          quien,
-          estado: "activa",
-          tsRep: ts,
-          tsRes: null,
-          quienR: null,
-          tRes: null,
-          tipo: "form"
-        };
+    // Leer recorrido
+    try{
+      const filasRec = await leerSheetCSV("App_Recorrido");
+      if(filasRec.length > 0){
+        rec={};recTs={};
+        filasRec.forEach(r=>{
+          if(!r.key)return;
+          rec[r.key] = r.value==="TRUE"||r.value==="true"||r.value===true;
+          if(r.ts) recTs[r.key]=r.ts;
+        });
       }
-    });
-
-    // También mantener fallas locales que no vengan del form (recién reportadas)
-    const fallasPrevias = fallas.filter(f=>f.tipo!=="form");
-    fallas = [
-      ...fallasPrevias,
-      ...Object.values(mapaFallas).map(f=>({...f, prio:normPrio(f.prio)}))
-    ];
-
-    // Deduplicar por item+seccion
-    const vistos = new Set();
-    fallas = fallas.filter(f=>{
-      const k = f.seccion+"|"+f.item+"|"+f.estado;
-      if(vistos.has(k)) return false;
-      vistos.add(k);
-      return true;
-    });
+    }catch(e){}
 
     setSyncState("ok");
     guardarLocal();
@@ -860,4 +811,23 @@ async function eliminarFalla(id){
 }
 
 function setFiltro(f,btn){filtroRec=f;document.querySelectorAll("#filters-rec .filter-chip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderRec();}
-function setFiltroFalla(f,btn){filtroFal=f;document.querySelectorAll(".filters .filter-
+function setFiltroFalla(f,btn){filtroFal=f;document.querySelectorAll(".filters .filter-chip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderFal();}
+
+// ── AVISO VIERNES ────────────────────────────────────────────────
+function checkViernes(){
+  const hoy=new Date();if(hoy.getDay()!==5)return;
+  const clave="viernes_"+hoy.toLocaleDateString("es-MX");
+  if(localStorage.getItem("cs_aviso_viernes")===clave)return;
+  if(okCount()>0){localStorage.setItem("cs_aviso_viernes",clave);setTimeout(()=>document.getElementById("modal-viernes").style.display="flex",1500);}
+}
+
+// ── INIT ─────────────────────────────────────────────────────────
+cargarLocal(); // Mostrar datos locales mientras carga
+renderAll();
+sincronizar(); // Cargar datos de Sheets
+checkViernes();
+// Auto-sincronizar cada 30 segundos
+setInterval(sincronizar, 30000);
+</script>
+</body>
+</html>

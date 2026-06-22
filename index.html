@@ -506,7 +506,14 @@ function setPanel(p){
   panelActual=p;
   renderPanel(p);
 }
-function renderPanel(p){if(p==="dash")renderDash();if(p==="rec")renderRec();if(p==="eq")renderEq();if(p==="fal")renderFal();updateBanners();updateBadge();}
+function renderPanel(p){
+  try{if(p==="dash")renderDash();}catch(e){console.error("renderDash:",e);document.getElementById("dash-content").innerHTML='<div style="padding:20px;color:#888;text-align:center">Error al cargar dashboard</div>';}
+  try{if(p==="rec")renderRec();}catch(e){console.error("renderRec:",e);}
+  try{if(p==="eq")renderEq();}catch(e){console.error("renderEq:",e);}
+  try{if(p==="fal")renderFal();}catch(e){console.error("renderFal:",e);}
+  try{updateBanners();}catch(e){}
+  try{updateBadge();}catch(e){}
+}
 function renderAll(){renderPanel(panelActual);updateBanners();updateBadge();guardarLocal();}
 
 function updateBanners(){
@@ -839,9 +846,14 @@ function checkViernes(){
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
-cargarLocal();
-renderAll();
-checkViernes();
+try { cargarLocal(); } catch(e) { console.error("cargarLocal error:",e); }
+try { renderAll(); } catch(e) {
+  console.error("renderAll error:",e);
+  // Forzar render del dashboard aunque sea vacío
+  const dc = document.getElementById("dash-content");
+  if(dc) dc.innerHTML = '<div style="padding:20px;text-align:center;color:#888">Sin datos aún — presiona ↻ para sincronizar</div>';
+}
+try { checkViernes(); } catch(e) {}
 // NO sincronizar automáticamente al cargar — solo manual con ↻
 // Esto evita que la app se quede cargando
 </script>

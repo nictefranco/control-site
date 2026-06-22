@@ -252,7 +252,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 // ══════════════════════════════════════════════════
 //  CONFIGURACIÓN — pega aquí tu URL del Apps Script
 // ══════════════════════════════════════════════════
-const API_URL = "https://script.google.com/a/macros/mercadolibre.com.mx/s/AKfycbx_3ibsUDyD10YA-Iv9_l1py73I2JoN43T3zX6lZuk1jBEFvsNQqUyIcD_wVsfeObg9/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyP6qwbERpi8055R0ldGpbjUtaKfCQpAOQif17ikkYTMBnCgaAs7WcFk5scstcdu-bVVw/exec";
 
 const FORM_BASE = "https://docs.google.com/forms/d/e/1FAIpQLSebKibEjAs_YAdaiiSfmuQr6DI9NfrmlzZta5JZRt_bg1k4Dg/viewform";
 const FORM_E = {tipo:"entry.1626065594",seccion:"entry.273662439",item:"entry.1189743020",quien:"entry.1035721543",desc:"entry.491888733",corr:"entry.1162966493"};
@@ -357,28 +357,145 @@ async function apiPost(data){
   }
 }
 
-// ── SINCRONIZAR ──────────────────────────────────────────────────
+// ── SINCRONIZAR — Lee del Google Sheet publicado como CSV ────────
+// ID de tu hoja de cálculo — reemplaza con el tuyo
+const SHEET_ID = "1dxD55ian4ntPMoFPwnhXWVmJjRi9-f8DBCQgCVxPE8A";
+const SHEET_APP_FALLAS = "App_Fallas";
+const SHEET_APP_REC    = "App_Recorrido";
+
+function sheetCSVUrl(sheetName){
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+}
+
+async function leerSheetCSV(sheetName){
+  const url = sheetCSVUrl(sheetName);
+  const r = await fetch(url, {mode:"cors"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  const text = await r.text();
+  return parseCSV(text);
+}
+
+function parseCSV(text){
+  const lines = text.trim().split("\n");
+  if(lines.length < 2) return [];
+  const hdrs = lines[0].split(",").map(h=>h.replace(/^"|"$/g,"").trim());
+  return lines.slice(1).map(line=>{
+    // Parser simple que maneja comillas
+    const vals=[];
+    let cur="", inQ=false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"'){inQ=!inQ;}
+      else if(line[i]===","&&!inQ){vals.push(cur);cur="";}
+      else cur+=line[i];
+    }
+    vals.push(cur);
+    const obj={};
+    hdrs.forEach((h,i)=>obj[h]=(vals[i]||"").replace(/^"|"$/g,"").trim());
+    return obj;
+  });
+}
+
 async function sincronizar(){
   if(sincronizando)return;
   sincronizando=true;
   setSyncState("syncing");
   try{
-    const[rf,rr]=await Promise.all([
-      apiGet({accion:"leerFallas"}),
-      apiGet({accion:"leerRecorrido"})
-    ]);
-    if(rf.fallas) fallas=rf.fallas.map(f=>({...f,prio:normPrio(f.prio)}));
-    if(rr.rec)   rec=rr.rec;
-    if(rr.recTs) recTs=rr.recTs;
+    // Leer de App_Fallas en la hoja personal de Gmail
+    const HOJA = "App_Fallas";
+    const filas = await leerSheetCSV(HOJA);
+
+    // Reconstruir fallas desde el form
+    // Columnas: Marca temporal, Tipo de reporte, Sección / Área, Item / Equipo,
+    //           Reportado por, Descripción, Corregido por
+    const mapaFallas = {};
+    let nextId = 1;
+
+    filas.forEach(f => {
+      const tipo   = f["Tipo de reporte"] || "";
+      const secc   = f["Sección / Área"] || "";
+      const item   = (f["Item / Equipo"] || "").trim();
+      const quien  = f["Reportado por"] || "";
+      const desc   = f["Descripción (opcional)"] || "";
+      const corr   = f["Corregido por (solo si marcas \'Falla corregida\')"] || 
+                     f["Corregido por"] || "";
+      const ts     = f["Marca temporal"] || "";
+      const clave  = secc + "|" + item;
+      if(!item) return;
+
+      if(tipo.includes("corregida") || tipo.includes("resuelta")){
+        if(mapaFallas[clave]){
+          // Calcular tiempo de resolución
+          let tRes = "—";
+          try{
+            const p=s=>{
+              // formato dd/M/yyyy H:mm:ss o dd/MM/yyyy HH:mm
+              const parts = s.replace(/,/g,"").trim().split(/[\s\/]/);
+              return new Date(s);
+            };
+            const t1 = new Date(mapaFallas[clave].tsRep.replace(/(\d+)\/(\d+)\/(\d+)\s(.*)/, "$3-$2-$1 $4"));
+            const t2 = new Date(ts.replace(/(\d+)\/(\d+)\/(\d+)\s(.*)/, "$3-$2-$1 $4"));
+            const diff = t2 - t1;
+            if(diff > 0){
+              const h=Math.floor(diff/3600000), m=Math.floor((diff%3600000)/60000);
+              tRes = (h?h+"h ":"") + m + "min";
+            }
+          }catch(e){}
+          mapaFallas[clave] = {...mapaFallas[clave], estado:"resuelta", tsRes:ts, quienR:corr||"—", tRes};
+        }
+      } else if(tipo.includes("falla") || tipo.includes("nueva") || tipo.includes("urgente") || tipo.includes("baja")){
+        // Determinar prioridad desde el tipo
+        let prio = "baja";
+        if(tipo.includes("nueva") || tipo.includes("requiere")) prio = "critica";
+        else if(tipo.includes("urgente")) prio = "urgente";
+
+        // Generar key compatible con la app
+        // Intentar mapear sección a secId/modId
+        const key = "FORM|" + clave;
+        mapaFallas[clave] = {
+          id: nextId++,
+          key,
+          seccion: secc,
+          modulo: secc.split("›")[1]?.trim() || secc,
+          item,
+          prio,
+          nota: desc,
+          quien,
+          estado: "activa",
+          tsRep: ts,
+          tsRes: null,
+          quienR: null,
+          tRes: null,
+          tipo: "form"
+        };
+      }
+    });
+
+    // También mantener fallas locales que no vengan del form (recién reportadas)
+    const fallasPrevias = fallas.filter(f=>f.tipo!=="form");
+    fallas = [
+      ...fallasPrevias,
+      ...Object.values(mapaFallas).map(f=>({...f, prio:normPrio(f.prio)}))
+    ];
+
+    // Deduplicar por item+seccion
+    const vistos = new Set();
+    fallas = fallas.filter(f=>{
+      const k = f.seccion+"|"+f.item+"|"+f.estado;
+      if(vistos.has(k)) return false;
+      vistos.add(k);
+      return true;
+    });
+
     setSyncState("ok");
+    guardarLocal();
     renderAll();
     showToast("✓ Datos actualizados","#0F6E56");
   }catch(e){
+    console.error("Sync error:", e);
     setSyncState("error");
-    showToast("Sin conexión — datos locales","#854F0B");
-    // Usar datos del localStorage como fallback
     cargarLocal();
     renderAll();
+    showToast("Sin conexión — datos locales","#854F0B");
   }
   sincronizando=false;
 }

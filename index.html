@@ -369,10 +369,18 @@ function sheetCSVUrl(sheetName){
 
 async function leerSheetCSV(sheetName){
   const url = sheetCSVUrl(sheetName);
-  const r = await fetch(url, {mode:"cors"});
-  if(!r.ok) throw new Error("HTTP "+r.status);
-  const text = await r.text();
-  return parseCSV(text);
+  const controller = new AbortController();
+  const timeout = setTimeout(()=>controller.abort(), 8000); // 8 segundos max
+  try{
+    const r = await fetch(url, {mode:"cors", signal:controller.signal});
+    clearTimeout(timeout);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const text = await r.text();
+    return parseCSV(text);
+  }catch(e){
+    clearTimeout(timeout);
+    throw e;
+  }
 }
 
 function parseCSV(text){
@@ -821,13 +829,4 @@ function checkViernes(){
   if(okCount()>0){localStorage.setItem("cs_aviso_viernes",clave);setTimeout(()=>document.getElementById("modal-viernes").style.display="flex",1500);}
 }
 
-// ── INIT ─────────────────────────────────────────────────────────
-cargarLocal(); // Mostrar datos locales mientras carga
-renderAll();
-sincronizar(); // Cargar datos de Sheets
-checkViernes();
-// Auto-sincronizar cada 30 segundos
-setInterval(sincronizar, 30000);
-</script>
-</body>
-</html>
+// ── INIT ────────────────────────────────

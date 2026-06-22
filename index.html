@@ -547,7 +547,8 @@ async function toggle(k){
   const ts=rec[k]?now():"";
   if(rec[k])recTs[k]=ts; else delete recTs[k];
   renderAll();
-  try{await apiPost({accion:"guardarRecorrido",key:k,value:rec[k],ts});}catch(e){}
+  // No esperar — backend en segundo plano
+  apiPost({accion:"guardarRecorrido",key:k,value:rec[k],ts}).catch(()=>{});
 }
 
 async function toggleEq(eqId){
@@ -623,16 +624,17 @@ async function guardarFalla(){
   const mod=sec.modulos.find(m=>m.id===modId);
   const ts=now();
   const secLabel=sec.label+" › "+mod.label;
-  const nueva={key:ik(secId,modId,item),seccion:secLabel,modulo:mod.label,item,prio:prioFalla,nota:"",quien:"",estado:"activa",tsRep:ts,tsRes:"",quienR:"",tRes:"",tipo:"instalacion",ubicacion:mod.label};
+  const nueva={id:Date.now(),key:ik(secId,modId,item),seccion:secLabel,modulo:mod.label,item,prio:prioFalla,nota:"",quien:"",estado:"activa",tsRep:ts,tsRes:"",quienR:"",tRes:"",tipo:"instalacion",ubicacion:mod.label};
+  // Guardar local inmediatamente — sin esperar al backend
+  fallas.push(nueva);
   document.getElementById("modal-falla").style.display="none";
-  showToast("⚑ Guardando...","#1a73e8");
-  try{
-    const r=await apiPost({accion:"guardarFalla",...nueva});
-    if(r.ok){nueva.id=r.id;fallas.push(nueva);renderAll();showToast("⚑ Falla registrada","#A32D2D");}
-  }catch(e){
-    nueva.id=Date.now();fallas.push(nueva);renderAll();showToast("⚑ Guardado local (sin conexión)","#854F0B");
-  }
+  renderAll();
+  showToast("⚑ Falla registrada","#A32D2D");
   abrirForm({tipo:"falla_nueva",item,seccion:secLabel,prioridad:prioFalla,fecha:ts});
+  // Enviar al backend en segundo plano (no bloquea)
+  apiPost({accion:"guardarFalla",...nueva}).then(r=>{
+    if(r?.id) nueva.id=r.id;
+  }).catch(()=>{});
 }
 
 async function guardarEqFalla(){
@@ -642,12 +644,14 @@ async function guardarEqFalla(){
   const ts=now();
   const nueva={key:"EE|"+eqId,seccion:"Equipos menores — "+eq.ubicacion,modulo:eq.tipo,item:eq.nombre,ubicacion:eq.ubicacion,prio:prioEq,nota:"",quien:"",estado:"activa",tsRep:ts,tsRes:"",quienR:"",tRes:"",tipo:"equipo"};
   document.getElementById("modal-eq-falla").style.display="none";
-  showToast("⚑ Guardando...","#1a73e8");
-  try{
-    const r=await apiPost({accion:"guardarFalla",...nueva});
-    if(r.ok){nueva.id=r.id;fallas.push(nueva);renderAll();showToast("⚑ Falla de equipo registrada","#A32D2D");}
-  }catch(e){nueva.id=Date.now();fallas.push(nueva);renderAll();}
+  // Guardar local inmediatamente
+  fallas.push(nueva);
+  document.getElementById("modal-eq-falla").style.display="none";
+  renderAll();
+  showToast("⚑ Falla de equipo registrada","#A32D2D");
   abrirForm({tipo:"falla_nueva",item:eq.nombre,seccion:"Equipos menores — "+eq.ubicacion,prioridad:prioEq,fecha:ts});
+  // Backend en segundo plano
+  apiPost({accion:"guardarFalla",...nueva}).then(r=>{if(r?.id)nueva.id=r.id;}).catch(()=>{});
 }
 
 function abrirResolver(id){
@@ -829,4 +833,4 @@ function checkViernes(){
   if(okCount()>0){localStorage.setItem("cs_aviso_viernes",clave);setTimeout(()=>document.getElementById("modal-viernes").style.display="flex",1500);}
 }
 
-// ── INIT ────────────────────────────────
+// ──

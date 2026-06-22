@@ -437,6 +437,8 @@ function parseCSV(text){
 async function sincronizar(){
   if(sincronizando)return;
   sincronizando=true;
+  // Safety: resetear si tarda más de 12 segundos
+  const safetyTimer = setTimeout(()=>{sincronizando=false;}, 12000);
   setSyncState("syncing");
   try{
     // Leer de App_Fallas — columnas: id,key,seccion,modulo,item,prio,nota,quien,estado,tsRep,tsRes,quienR,tRes,tipo,ubicacion
@@ -487,6 +489,7 @@ async function sincronizar(){
     renderAll();
     showToast("Sin conexión — datos locales","#854F0B");
   }
+  clearTimeout(safetyTimer);
   sincronizando=false;
 }
 
@@ -629,8 +632,9 @@ async function guardarFalla(){
   fallas.push(nueva);
   document.getElementById("modal-falla").style.display="none";
   renderAll();
-  showToast("⚑ Falla registrada","#A32D2D");
-  abrirForm({tipo:"falla_nueva",item,seccion:secLabel,prioridad:prioFalla,fecha:ts});
+  showToast("⚑ Falla registrada — abre el form para confirmar","#A32D2D");
+  // Abrir form con pequeño delay para no interferir con la app
+  setTimeout(()=>abrirForm({tipo:"falla_nueva",item,seccion:secLabel,prioridad:prioFalla,fecha:ts}), 300);
   // Enviar al backend en segundo plano (no bloquea)
   apiPost({accion:"guardarFalla",...nueva}).then(r=>{
     if(r?.id) nueva.id=r.id;
@@ -828,9 +832,4 @@ function setFiltroFalla(f,btn){filtroFal=f;document.querySelectorAll(".filters .
 // ── AVISO VIERNES ────────────────────────────────────────────────
 function checkViernes(){
   const hoy=new Date();if(hoy.getDay()!==5)return;
-  const clave="viernes_"+hoy.toLocaleDateString("es-MX");
-  if(localStorage.getItem("cs_aviso_viernes")===clave)return;
-  if(okCount()>0){localStorage.setItem("cs_aviso_viernes",clave);setTimeout(()=>document.getElementById("modal-viernes").style.display="flex",1500);}
-}
-
-// ──
+  const clave="

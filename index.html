@@ -219,17 +219,37 @@ let filtro = 'todos';
 let view = 'dashboard';
 
 const DEFAULT_STRUCTURE = [
-  { grupo: 'OB — Outbound', subs: [
-    { nombre: 'Sellers Sección 1', n: 7 },
-    { nombre: 'Sellers Sección 2', n: 7 },
-    { nombre: 'Sellers Sección 3', n: 7 },
+  { grupo: 'Lobby', subs: [
+    { nombre: 'Módulo 1', n: 6 },
+    { nombre: 'Módulo 2', n: 8 },
+    { nombre: 'Módulo 3', n: 8 },
+    { nombre: 'Módulo 4', n: 8 },
+    { nombre: 'Módulo 5', n: 12 },
   ]},
-  { grupo: 'IB — Inbound', subs: [
-    { nombre: 'Sección 1', n: 7 },
-    { nombre: 'Sección 2', n: 7 },
-    { nombre: 'Sección 3', n: 7 },
+  { grupo: 'OB — Internos', subs: [
+    { nombre: 'Módulo 1', n: 7 },
+    { nombre: 'Módulo 2', n: 7 },
+    { nombre: 'Módulo 3', n: 7 },
+  ]},
+  { grupo: 'IB — Internos', subs: [
+    { nombre: 'Módulo 1', n: 7 },
+    { nombre: 'Módulo 2', n: 7 },
+    { nombre: 'Módulo 3', n: 7 },
+  ]},
+  { grupo: 'OB — Externos', subs: [
+    { nombre: 'Módulo 1', n: 4 },
+    { nombre: 'Módulo 2', n: 4 },
+    { nombre: 'Módulo 3', n: 4 },
+  ]},
+  { grupo: 'IB — Externos', subs: [
+    { nombre: 'Módulo 1', n: 4 },
+    { nombre: 'Módulo 2', n: 4 },
+    { nombre: 'Módulo 3', n: 4 },
   ]},
 ];
+
+// Baños sueltos (uno solo por ubicación, no forman parte de un módulo)
+const BANIOS_SUELTOS = ['CCM', 'SM', 'Caseta 1', 'Caseta 2'];
 
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function fmt(ts){ return new Date(ts).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
@@ -269,308 +289,3 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 // ====================================
-
-async function seedIfEmpty(){
-  if(Object.keys(equipos).length) return;
-  const nuevos = {};
-  DEFAULT_STRUCTURE.forEach(g=>{
-    g.subs.forEach(s=>{
-      for(let i=1;i<=s.n;i++){
-        const id = uid();
-        nuevos[id] = { nombre: 'Baño '+i, grupo: g.grupo, subgrupo: s.nombre, estado:'ok', urgente:false, reporteActivoId:null };
-      }
-    });
-  });
-  equipos = nuevos;
-  await saveEquipos();
-}
-
-async function saveEquipos(){ try{ await db.ref('equipos').set(equipos); }catch(e){ showToast('Error guardando (revisa tu conexión / configuración Firebase)'); } }
-async function saveReportes(){ try{ await db.ref('reportes').set(reportes); }catch(e){ showToast('Error guardando (revisa tu conexión / configuración Firebase)'); } }
-
-// Escucha en tiempo real: en cuanto alguien reporta o repara, todos los demás lo ven sin recargar.
-let primeraCargaEquipos = true;
-db.ref('equipos').on('value', async (snap)=>{
-  equipos = snap.val() || {};
-  if(primeraCargaEquipos){
-    primeraCargaEquipos = false;
-    await seedIfEmpty();
-  }
-  render();
-});
-db.ref('reportes').on('value', (snap)=>{
-  reportes = snap.val() || {};
-  render();
-});
-
-function render(){
-  document.getElementById('metaLine').textContent = '● Actualizado ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-  renderBanner();
-  renderChips();
-  renderSelectEquipo();
-  if(view==='dashboard' || view==='fallas') renderDashboard();
-  if(view==='historial') renderHistorial();
-  if(view==='equipos') renderEquiposAdmin();
-}
-
-function renderBanner(){
-  const urgentes = Object.values(equipos).filter(e=>e.estado==='falla' && e.urgente).length;
-  document.getElementById('banner').style.display = urgentes>0 ? 'flex' : 'none';
-  document.getElementById('bannerCount').textContent = urgentes;
-  const fallas = Object.values(equipos).filter(e=>e.estado==='falla').length;
-  const ok = Object.keys(equipos).length - fallas;
-  document.getElementById('numOk').textContent = ok;
-  document.getElementById('numFalla').textContent = fallas;
-  document.getElementById('dashStats').style.display = (view==='dashboard'||view==='fallas') ? 'flex' : 'none';
-  const navBadge = document.getElementById('navBadge');
-  if(fallas>0){ navBadge.style.display='block'; navBadge.textContent = fallas; } else { navBadge.style.display='none'; }
-}
-
-function renderChips(){
-  const chips = [
-    {k:'todos', l:'Todos'},
-    {k:'pendientes', l:'Pendientes'},
-    {k:'falla', l:'Con falla'},
-    {k:'ok', l:'OK'},
-  ];
-  const box = document.getElementById('chips');
-  box.style.display = (view==='dashboard'||view==='fallas') ? 'flex' : 'none';
-  box.innerHTML = '';
-  chips.forEach(c=>{
-    const b = document.createElement('button');
-    b.className = 'chip' + (filtro===c.k ? ' active' : '');
-    b.textContent = c.l;
-    b.addEventListener('click', ()=>{ filtro = c.k; render(); });
-    box.appendChild(b);
-  });
-}
-
-function matchesFiltro(eq){
-  if(filtro==='todos') return true;
-  if(filtro==='falla' || filtro==='pendientes') return eq.estado==='falla';
-  if(filtro==='ok') return eq.estado==='ok';
-  return true;
-}
-
-function renderDashboard(){
-  const target = document.getElementById('viewDashboard');
-  let html = '';
-  let forceFallaOnly = (view==='fallas');
-  const groups = {};
-  Object.entries(equipos).forEach(([id,eq])=>{
-    if(forceFallaOnly && eq.estado!=='falla') return;
-    if(!forceFallaOnly && !matchesFiltro(eq)) return;
-    const key = eq.grupo || 'Sin grupo';
-    groups[key] = groups[key] || {};
-    const subkey = eq.subgrupo || 'General';
-    groups[key][subkey] = groups[key][subkey] || [];
-    groups[key][subkey].push([id, eq]);
-  });
-  const groupKeys = Object.keys(groups);
-  if(!groupKeys.length){
-    html = '<div class="empty">No hay equipos que coincidan con el filtro.</div>';
-  }
-  groupKeys.forEach(g=>{
-    html += `<div class="group-title">${esc(g)}</div>`;
-    Object.keys(groups[g]).forEach(sub=>{
-      html += `<div class="sub-title">${esc(sub)}</div><div class="items">`;
-      groups[g][sub].forEach(([id,eq])=>{
-        const cls = eq.estado==='falla' ? (eq.urgente ? 'falla urgente' : 'falla') : '';
-        html += `<div class="item ${cls}" data-id="${id}"><span class="dot"></span>${esc(eq.nombre)}${eq.estado==='falla' ? '<span class="flag">🚩</span>' : ''}</div>`;
-      });
-      html += `</div>`;
-    });
-  });
-  target.innerHTML = html;
-  target.querySelectorAll('.item').forEach(it=>{
-    it.addEventListener('click', ()=>{
-      const id = it.dataset.id;
-      const eq = equipos[id];
-      if(eq.estado==='falla') openReparar(id);
-      else openReportar(id);
-    });
-  });
-}
-
-function renderSelectEquipo(){
-  const sel = document.getElementById('repEquipo');
-  const cur = sel.value;
-  sel.innerHTML = '';
-  Object.entries(equipos).sort((a,b)=> (a[1].grupo+a[1].subgrupo+a[1].nombre).localeCompare(b[1].grupo+b[1].subgrupo+b[1].nombre))
-  .forEach(([id,eq])=>{
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = `${eq.grupo} · ${eq.subgrupo} · ${eq.nombre}`;
-    sel.appendChild(opt);
-  });
-  if(Object.keys(equipos).includes(cur)) sel.value = cur;
-}
-
-function renderHistorial(){
-  const target = document.getElementById('viewHistorial');
-  const list = Object.values(reportes).sort((a,b)=> b.fecha - a.fecha);
-  if(!list.length){ target.innerHTML = '<div class="empty">Sin reportes todavía.</div>'; return; }
-  let html = '';
-  list.forEach(r=>{
-    html += `<div class="hist-card">
-      <div class="hist-top">
-        <div class="name">${esc(r.equipoNombre)} ${r.urgente ? '🟠' : ''}</div>
-        <span class="pill ${r.estado}">${r.estado}</span>
-      </div>
-      <div class="hist-row"><b>Reportó:</b> ${esc(r.reportante)} — ${fmt(r.fecha)}</div>
-      <div class="hist-row"><b>Problema:</b> ${esc(r.problema)}</div>
-      ${r.foto ? `<img src="${r.foto}" style="margin-top:8px;max-width:100%;border-radius:9px;border:1px solid var(--line);">` : ''}
-      ${r.estado==='reparado' ? `
-        <div class="hist-row"><b>Reparó:</b> ${esc(r.tecnico)} — ${fmt(r.fechaReparacion)}</div>
-        <div class="hist-row"><b>Solución:</b> ${esc(r.solucion)}</div>
-        <div class="hist-row"><b>Refacciones:</b> ${r.usoRefacciones==='si' ? esc(r.refacciones||'—') : 'No se usaron'}</div>
-      ` : ''}
-    </div>`;
-  });
-  target.innerHTML = html;
-}
-
-function renderEquiposAdmin(){
-  const target = document.getElementById('viewEquipos');
-  let html = `
-    <div class="group-title">Agregar equipo</div>
-    <label>Grupo</label><input id="eqGrupo" placeholder="Ej. OB — Outbound">
-    <label>Subgrupo</label><input id="eqSubgrupo" placeholder="Ej. Sellers Sección 1">
-    <label>Nombre</label><input id="eqNombre" placeholder="Ej. Baño 8">
-    <button class="btn btn-primary" id="btnAddEquipo" style="margin-top:14px;width:100%;">Agregar</button>
-    <div class="group-title" style="margin-top:26px;">Equipos registrados (${Object.keys(equipos).length})</div>
-  `;
-  Object.entries(equipos).sort((a,b)=> (a[1].grupo+a[1].subgrupo+a[1].nombre).localeCompare(b[1].grupo+b[1].subgrupo+b[1].nombre))
-  .forEach(([id,eq])=>{
-    html += `<div class="hist-card" style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-weight:600;font-size:13.5px;">${esc(eq.nombre)} <span class="pill ${eq.estado==='falla'?'pendiente':'reparado'}">${eq.estado}</span></div>
-        <div class="hist-row" style="margin-top:2px;">${esc(eq.grupo)} · ${esc(eq.subgrupo)}</div>
-      </div>
-      <button class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:11px;" data-del="${id}">Eliminar</button>
-    </div>`;
-  });
-  target.innerHTML = html;
-  document.getElementById('btnAddEquipo').addEventListener('click', async ()=>{
-    const grupo = document.getElementById('eqGrupo').value.trim();
-    const subgrupo = document.getElementById('eqSubgrupo').value.trim();
-    const nombre = document.getElementById('eqNombre').value.trim();
-    if(!grupo || !subgrupo || !nombre){ showToast('Completa grupo, subgrupo y nombre.'); return; }
-    const id = uid();
-    equipos[id] = { nombre, grupo, subgrupo, estado:'ok', urgente:false, reporteActivoId:null };
-    await saveEquipos();
-    showToast('Equipo agregado.');
-    render();
-  });
-  target.querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      if(!confirm('¿Eliminar este equipo? Su historial de reportes se conserva.')) return;
-      delete equipos[btn.dataset.del];
-      await saveEquipos();
-      render();
-    });
-  });
-}
-
-// Navegación
-document.querySelectorAll('nav.bottom button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    view = btn.dataset.view;
-    document.getElementById('viewDashboard').style.display = (view==='dashboard'||view==='fallas') ? 'block' : 'none';
-    document.getElementById('viewHistorial').style.display = view==='historial' ? 'block' : 'none';
-    document.getElementById('viewEquipos').style.display = view==='equipos' ? 'block' : 'none';
-    render();
-  });
-});
-document.getElementById('btnRefresh').addEventListener('click', ()=>{ render(); showToast('Ya está sincronizado en tiempo real ✓'); });
-
-// Reportar
-function openReportar(prefId){
-  document.getElementById('repNombre').value='';
-  document.getElementById('repProblema').value='';
-  document.getElementById('repUrgente').checked=false;
-  document.getElementById('repFoto').value='';
-  document.getElementById('repFotoPreview').style.display='none';
-  document.getElementById('repFotoPreview').removeAttribute('src');
-  fotoActual = null;
-  renderSelectEquipo();
-  if(prefId) document.getElementById('repEquipo').value = prefId;
-  document.getElementById('modalReportar').classList.add('show');
-}
-document.getElementById('btnAbrirFalla').addEventListener('click', ()=>openReportar(null));
-document.getElementById('cerrarReportar').addEventListener('click', ()=> document.getElementById('modalReportar').classList.remove('show'));
-document.getElementById('repFoto').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  showToast('Procesando foto…');
-  try{
-    fotoActual = await resizeImage(file);
-    const prev = document.getElementById('repFotoPreview');
-    prev.src = fotoActual;
-    prev.style.display = 'block';
-  }catch(err){ showToast('No se pudo cargar la foto.'); }
-});
-document.getElementById('enviarReportar').addEventListener('click', async ()=>{
-  const nombre = document.getElementById('repNombre').value.trim();
-  const equipoId = document.getElementById('repEquipo').value;
-  const problema = document.getElementById('repProblema').value.trim();
-  const urgente = document.getElementById('repUrgente').checked;
-  if(!equipoId){ showToast('No hay equipos registrados.'); return; }
-  if(!nombre || !problema){ showToast('Completa tu nombre y el problema.'); return; }
-  const id = uid();
-  const eq = equipos[equipoId];
-  reportes[id] = { equipoId, equipoNombre: `${eq.grupo} · ${eq.subgrupo} · ${eq.nombre}`, reportante: nombre, problema, fecha: Date.now(), estado:'pendiente', urgente, foto: fotoActual };
-  eq.estado = 'falla';
-  eq.urgente = urgente;
-  eq.reporteActivoId = id;
-  await saveReportes(); await saveEquipos();
-  document.getElementById('modalReportar').classList.remove('show');
-  showToast('Reporte enviado.');
-  render();
-});
-
-// Reparar
-function openReparar(id){
-  activeEquipoId = id;
-  const eq = equipos[id];
-  const rep = eq.reporteActivoId ? reportes[eq.reporteActivoId] : null;
-  document.getElementById('reparaTitulo').textContent = 'Reparar: ' + eq.nombre;
-  document.getElementById('reparaMeta').innerHTML = rep
-    ? `Reportó ${esc(rep.reportante)} · ${fmt(rep.fecha)} · "${esc(rep.problema)}"` + (rep.foto ? `<br><img src="${rep.foto}" style="margin-top:8px;max-width:100%;border-radius:9px;border:1px solid var(--line);">` : '')
-    : 'Sin detalle.';
-  document.getElementById('repTecnico').value='';
-  document.getElementById('repSolucion').value='';
-  document.getElementById('repUsoRefacciones').value='no';
-  document.getElementById('repRefacciones').value='';
-  document.getElementById('refaccionesBox').style.display='none';
-  document.getElementById('modalReparar').classList.add('show');
-}
-document.getElementById('cerrarReparar').addEventListener('click', ()=> document.getElementById('modalReparar').classList.remove('show'));
-document.getElementById('repUsoRefacciones').addEventListener('change', e=>{
-  document.getElementById('refaccionesBox').style.display = e.target.value==='si' ? 'block' : 'none';
-});
-document.getElementById('guardarReparar').addEventListener('click', async ()=>{
-  const tecnico = document.getElementById('repTecnico').value.trim();
-  const solucion = document.getElementById('repSolucion').value.trim();
-  const usoRefacciones = document.getElementById('repUsoRefacciones').value;
-  const refacciones = document.getElementById('repRefacciones').value.trim();
-  if(!tecnico || !solucion){ showToast('Completa tu nombre y la solución.'); return; }
-  const eq = equipos[activeEquipoId];
-  if(eq.reporteActivoId && reportes[eq.reporteActivoId]){
-    const rep = reportes[eq.reporteActivoId];
-    rep.estado='reparado'; rep.tecnico=tecnico; rep.solucion=solucion;
-    rep.usoRefacciones=usoRefacciones; rep.refacciones=refacciones; rep.fechaReparacion=Date.now();
-  }
-  eq.estado='ok'; eq.urgente=false; eq.reporteActivoId=null;
-  await saveReportes(); await saveEquipos();
-  document.getElementById('modalReparar').classList.remove('show');
-  showToast('Equipo marcado como reparado.');
-  render();
-});
-
-// Nota: la carga inicial y la sincronización ya las maneja db.ref(...).on('value', ...) arriba.
-</script>
-</body>
-</html>

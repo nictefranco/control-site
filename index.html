@@ -2,12 +2,13 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Control de Site</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
-    --bg:#ffffff;
+    --bg:#f7f7f7;
     --panel:#ffffff;
     --panel2:#f5f5f5;
     --line:#e6e6e6;
@@ -27,59 +28,69 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--text);font-family:'Proxima Nova',Inter,-apple-system,Segoe UI,Roboto,sans-serif;}
   .app{max-width:760px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;}
-  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;background:var(--meli-yellow);}
-  .topbar h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px;color:#2d2d2d;}
-  .topbar .meta{font-size:11px;color:#4a4a4a;font-family:var(--mono);margin-top:2px;}
-  .topbar-right{display:flex;align-items:center;gap:8px;}
-  .icon-btn{background:#ffffff;border:1px solid rgba(0,0,0,.12);color:#5a5a5a;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
-  .icon-btn:hover{color:var(--text);}
-  .btn-falla{background:var(--falla);color:#ffffff;border:none;border-radius:9px;padding:0 16px;height:34px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 6px rgba(230,57,70,.3);}
-  .btn-falla:hover{filter:brightness(1.05);}
+
+  /* LOGIN */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--meli-yellow);padding:20px;}
+  .login-box{background:#fff;border-radius:18px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.10);}
+  .login-logo{font-size:22px;font-weight:900;color:#333;margin-bottom:4px;}
+  .login-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+  .login-box label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px;font-weight:600;}
+  .login-box label:first-of-type{margin-top:0;}
+  .login-box input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:12px 14px;font-size:15px;font-family:inherit;}
+  .login-box input:focus{outline:none;border-color:var(--meli-blue);}
+  .btn-login{width:100%;background:var(--meli-blue);color:#fff;border:none;border-radius:10px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;margin-top:20px;font-family:inherit;}
+  .btn-login:hover{background:var(--meli-blue-dark);}
+  .login-error{color:var(--falla);font-size:13px;text-align:center;margin-top:12px;display:none;}
+  .role-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;}
+  .role-badge.admin{background:rgba(52,131,250,.12);color:var(--meli-blue);}
+  .role-badge.tecnico{background:var(--ok-dim);color:var(--ok);}
+  .role-badge.general{background:var(--urgente-dim);color:var(--urgente);}
+
+  /* TOPBAR */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 10px;background:var(--meli-yellow);}
+  .topbar-left{display:flex;flex-direction:column;}
+  .topbar h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.2px;color:#2d2d2d;}
+  .topbar .meta{font-size:10px;color:#4a4a4a;font-family:var(--mono);margin-top:1px;}
+  .topbar-right{display:flex;align-items:center;gap:7px;}
+  .icon-btn{background:#ffffff;border:1px solid rgba(0,0,0,.12);color:#5a5a5a;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;}
+  .btn-falla{background:var(--falla);color:#ffffff;border:none;border-radius:9px;padding:0 14px;height:32px;font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;}
+  .user-chip{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.08);border-radius:99px;padding:4px 10px 4px 6px;cursor:pointer;}
+  .user-chip .avatar{width:22px;height:22px;border-radius:50%;background:var(--meli-blue);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .user-chip .uname{font-size:11px;font-weight:700;color:#333;}
 
   .banner{margin:8px 18px 4px;background:var(--urgente-dim);border:1px solid rgba(245,166,35,.4);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#a86d00;}
   .banner .count{margin-left:auto;background:rgba(245,166,35,.25);padding:2px 10px;border-radius:99px;font-family:var(--mono);}
 
-  .chips{display:flex;gap:6px;padding:14px 18px 6px;overflow-x:auto;}
-  .chip{flex:none;background:var(--panel2);border:1px solid var(--line);color:var(--muted);padding:8px 14px;border-radius:99px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .chips{display:flex;gap:6px;padding:12px 18px 4px;overflow-x:auto;}
+  .chip{flex:none;background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:7px 14px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
   .chip.active{background:var(--meli-blue);color:#fff;border-color:var(--meli-blue);}
 
   main{flex:1;padding:6px 18px 90px;overflow-y:auto;}
   .group-title{font-size:11px;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;margin:18px 0 8px;font-weight:700;}
-  .sub-title{font-size:12.5px;color:var(--text);margin:12px 0 8px;font-weight:600;opacity:.85;}
-  .items{display:flex;flex-wrap:wrap;gap:8px;}
-  .item{
-    border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:9px 12px;
-    font-size:13px;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;color:var(--text);
-  }
+  .sub-title{font-size:12.5px;color:var(--text);margin:10px 0 7px;font-weight:600;}
+  .items{display:flex;flex-wrap:wrap;gap:7px;}
+  .item{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 12px;font-size:13px;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;color:var(--text);}
   .item .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none;}
   .item.falla{border-color:rgba(230,57,70,.35);background:var(--falla-dim);}
-  .item.falla .dot{background:var(--falla);}
+  .item.falla .dot{background:var(--falla);animation:pulse 1.4s infinite;}
   .item.urgente{border-color:rgba(245,166,35,.55);background:var(--urgente-dim);}
   .item.urgente .dot{background:var(--urgente);}
-  .item .flag{font-size:11px;opacity:.7;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:40px 0;}
 
-  nav.bottom{
-    position:fixed;bottom:0;left:0;right:0;background:#ffffff;border-top:1px solid var(--line);
-    display:flex;max-width:760px;margin:0 auto;box-shadow:0 -2px 10px rgba(0,0,0,.04);
-  }
-  nav.bottom button{
-    flex:1;background:none;border:none;color:var(--muted);padding:12px 4px 10px;font-size:11px;font-weight:600;
-    cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:inherit;position:relative;
-  }
+  nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;max-width:760px;margin:0 auto;box-shadow:0 -2px 10px rgba(0,0,0,.04);}
+  nav.bottom button{flex:1;background:none;border:none;color:var(--muted);padding:10px 4px 9px;font-size:10.5px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;position:relative;}
   nav.bottom button.active{color:var(--meli-blue);}
-  nav.bottom svg{width:19px;height:19px;}
-  .nav-badge{position:absolute;top:2px;right:18%;background:var(--falla);color:#fff;font-size:9px;font-weight:700;border-radius:99px;padding:1px 5px;min-width:14px;text-align:center;}
+  nav.bottom svg{width:18px;height:18px;}
+  .nav-badge{position:absolute;top:2px;right:16%;background:var(--falla);color:#fff;font-size:9px;font-weight:700;border-radius:99px;padding:1px 5px;min-width:14px;text-align:center;}
 
-  /* dashboard stats */
-  .stats{display:flex;gap:10px;padding:0 18px 6px;margin-top:6px;}
-  .stat{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+  .stats{display:flex;gap:10px;padding:0 18px 4px;margin-top:6px;}
+  .stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
   .stat .num{font-family:var(--mono);font-size:22px;font-weight:700;}
-  .stat .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
+  .stat .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px;}
   .stat.ok .num{color:var(--ok);} .stat.falla .num{color:var(--falla);}
 
-  /* historial */
-  .hist-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;}
+  .hist-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;}
   .hist-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
   .hist-top .name{font-weight:700;font-size:14px;color:var(--text);}
   .pill{font-size:10px;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:99px;flex:none;}
@@ -88,12 +99,12 @@
   .hist-row{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.5;}
   .hist-row b{color:var(--text);font-weight:600;}
 
-  /* modal */
+  /* MODAL */
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:50;}
   .modal-bg.show{display:flex;}
-  .modal{background:#ffffff;border:1px solid var(--line);border-radius:18px 18px 0 0;padding:22px 20px 28px;max-width:760px;width:100%;max-height:88vh;overflow-y:auto;}
+  .modal{background:#fff;border-radius:18px 18px 0 0;padding:22px 20px 30px;max-width:760px;width:100%;max-height:88vh;overflow-y:auto;}
   .modal h3{margin:0 0 4px;font-size:16px;color:var(--text);}
-  .modal .meta-line{font-size:12px;color:var(--muted);margin-bottom:14px;font-family:var(--mono);}
+  .modal .meta-line{font-size:12px;color:var(--muted);margin-bottom:14px;}
   label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px;font-weight:600;}
   label:first-of-type{margin-top:0;}
   input,select,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:11px 12px;font-size:14px;font-family:inherit;}
@@ -101,46 +112,77 @@
   input:focus,select:focus,textarea:focus{outline:none;border-color:var(--meli-blue);}
   .check-row{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;}
   .check-row input{width:auto;}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:18px;}
-  .btn{padding:12px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;}
-  .btn-primary{background:var(--meli-blue);color:#ffffff;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;}
+  .btn{padding:12px;border-radius:10px;border:none;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;width:100%;}
+  .btn-primary{background:var(--meli-blue);color:#fff;}
   .btn-primary:hover{background:var(--meli-blue-dark);}
-  .btn-ok{background:var(--ok);color:#ffffff;}
+  .btn-ok{background:var(--ok);color:#fff;}
   .btn-ghost{background:var(--panel2);border:1px solid var(--line);color:var(--muted);}
+  .btn-danger{background:var(--falla);color:#fff;}
+  .section-title{font-size:14px;font-weight:700;margin:22px 0 12px;color:var(--text);}
 
-  .toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:#2d2d2d;color:#fff;border:1px solid var(--line);padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;transition:.25s;z-index:60;}
+  /* USUARIOS */
+  .user-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .user-card .uinfo{display:flex;align-items:center;gap:10px;}
+  .user-card .avatar-lg{width:36px;height:36px;border-radius:50%;background:var(--meli-blue);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;}
+  .user-card .uname{font-weight:700;font-size:14px;}
+  .user-card .urole{font-size:11px;color:var(--muted);margin-top:1px;}
+  .btn-sm{background:var(--falla-dim);color:var(--falla);border:none;border-radius:7px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;}
+
+  .toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(20px);background:#2d2d2d;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;transition:.25s;z-index:60;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .section-sep{height:1px;background:var(--line);margin:16px 0;}
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- PANTALLA DE LOGIN -->
+<div id="loginWrap" class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">Control de Site</div>
+    <div class="login-sub">Ingresa tus credenciales para continuar</div>
+    <label>Usuario</label>
+    <input id="loginUser" placeholder="Tu usuario" autocomplete="username">
+    <label>PIN</label>
+    <input id="loginPin" type="password" placeholder="••••" maxlength="8" autocomplete="current-password">
+    <button class="btn-login" id="btnLogin">Entrar</button>
+    <div class="login-error" id="loginError">Usuario o PIN incorrecto.</div>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div class="app" id="mainApp" style="display:none;">
   <div class="topbar">
-    <div>
+    <div class="topbar-left">
       <h1>Control de Site</h1>
       <div class="meta" id="metaLine">cargando…</div>
     </div>
     <div class="topbar-right">
-      <button class="icon-btn" id="btnRefresh" title="Actualizar">⟳</button>
-      <button class="btn-falla" id="btnAbrirFalla">🚩 Falla</button>
+      <div class="user-chip" id="userChip">
+        <div class="avatar" id="userAvatar">?</div>
+        <span class="uname" id="userNameTop"></span>
+      </div>
+      <button class="icon-btn" id="btnLogout" title="Cerrar sesión">⎋</button>
+      <button class="btn-falla" id="btnAbrirFalla" style="display:none;">🚩 Falla</button>
     </div>
   </div>
 
   <div class="banner" id="banner" style="display:none;">
     🟠 Fallas urgentes pendientes <span class="count" id="bannerCount">0</span>
   </div>
-
   <div class="stats" id="dashStats" style="display:none;">
     <div class="stat ok"><div class="num" id="numOk">0</div><div class="lbl">OK</div></div>
     <div class="stat falla"><div class="num" id="numFalla">0</div><div class="lbl">Con falla</div></div>
   </div>
-
   <div class="chips" id="chips"></div>
 
   <main id="viewDashboard"></main>
   <main id="viewHistorial" style="display:none;"></main>
   <main id="viewEquipos" style="display:none;"></main>
+  <main id="viewUsuarios" style="display:none;"></main>
 
-  <nav class="bottom">
+  <nav class="bottom" id="bottomNav">
     <button data-view="dashboard" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       Dashboard
@@ -149,14 +191,18 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       Historial
     </button>
-    <button data-view="equipos">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Equipos
-    </button>
     <button data-view="fallas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v16M4 4h13l-3 4 3 4H4"/></svg>
       Fallas
       <span class="nav-badge" id="navBadge" style="display:none;">0</span>
+    </button>
+    <button data-view="equipos" id="navEquipos" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Equipos
+    </button>
+    <button data-view="usuarios" id="navUsuarios" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Usuarios
     </button>
   </nav>
 </div>
@@ -165,9 +211,7 @@
 <div class="modal-bg" id="modalReportar">
   <div class="modal">
     <h3>Reportar falla</h3>
-    <div class="meta-line">Cualquiera puede reportar — solo escribe tu nombre.</div>
-    <label>Tu nombre</label>
-    <input id="repNombre" placeholder="Ej. María / Limpieza turno tarde">
+    <div class="meta-line" id="reportarMeta"></div>
     <label>Equipo / ubicación</label>
     <select id="repEquipo"></select>
     <label>¿Qué pasó?</label>
@@ -188,8 +232,6 @@
   <div class="modal">
     <h3 id="reparaTitulo">Reparar</h3>
     <div class="meta-line" id="reparaMeta"></div>
-    <label>Tu nombre (técnico)</label>
-    <input id="repTecnico" placeholder="Tu nombre">
     <label>¿Qué tenía? / solución aplicada</label>
     <textarea id="repSolucion" placeholder="Ej. válvula dañada, se reemplazó."></textarea>
     <label>¿Se usaron refacciones?</label>
@@ -211,75 +253,38 @@
 <div class="toast" id="toast"></div>
 
 <script>
-let equipos = {};   // id -> {nombre, grupo, subgrupo, estado, urgente, reporteActivoId}
-let reportes = {};  // id -> {...}
+// ========== ESTADO ==========
+let equipos = {};
+let reportes = {};
+let usuarios = {};
 let activeEquipoId = null;
 let fotoActual = null;
 let filtro = 'todos';
 let view = 'dashboard';
+let sesion = null; // { id, nombre, rol }
 
+// ========== ESTRUCTURA DEFAULT ==========
 const DEFAULT_STRUCTURE = [
   { grupo: 'Lobby', subs: [
-    { nombre: 'Módulo 1', n: 6 },
-    { nombre: 'Módulo 2', n: 8 },
-    { nombre: 'Módulo 3', n: 8 },
-    { nombre: 'Módulo 4', n: 8 },
-    { nombre: 'Módulo 5', n: 12 },
+    { nombre: 'Módulo 1', n: 6 },{ nombre: 'Módulo 2', n: 8 },
+    { nombre: 'Módulo 3', n: 8 },{ nombre: 'Módulo 4', n: 8 },{ nombre: 'Módulo 5', n: 12 },
   ]},
   { grupo: 'OB — Internos', subs: [
-    { nombre: 'Módulo 1', n: 7 },
-    { nombre: 'Módulo 2', n: 7 },
-    { nombre: 'Módulo 3', n: 7 },
+    { nombre: 'Módulo 1', n: 7 },{ nombre: 'Módulo 2', n: 7 },{ nombre: 'Módulo 3', n: 7 },
   ]},
   { grupo: 'IB — Internos', subs: [
-    { nombre: 'Módulo 1', n: 7 },
-    { nombre: 'Módulo 2', n: 7 },
-    { nombre: 'Módulo 3', n: 7 },
+    { nombre: 'Módulo 1', n: 7 },{ nombre: 'Módulo 2', n: 7 },{ nombre: 'Módulo 3', n: 7 },
   ]},
   { grupo: 'OB — Externos', subs: [
-    { nombre: 'Módulo 1', n: 4 },
-    { nombre: 'Módulo 2', n: 4 },
-    { nombre: 'Módulo 3', n: 4 },
+    { nombre: 'Módulo 1', n: 4 },{ nombre: 'Módulo 2', n: 4 },{ nombre: 'Módulo 3', n: 4 },
   ]},
   { grupo: 'IB — Externos', subs: [
-    { nombre: 'Módulo 1', n: 4 },
-    { nombre: 'Módulo 2', n: 4 },
-    { nombre: 'Módulo 3', n: 4 },
+    { nombre: 'Módulo 1', n: 4 },{ nombre: 'Módulo 2', n: 4 },{ nombre: 'Módulo 3', n: 4 },
   ]},
 ];
-
-// Baños sueltos (uno solo por ubicación, no forman parte de un módulo)
 const BANIOS_SUELTOS = ['CCM', 'SM', 'Caseta 1', 'Caseta 2'];
 
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function fmt(ts){ return new Date(ts).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
-function esc(s){ const d=document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
-
-function resizeImage(file, maxW=900, quality=0.7){
-  return new Promise((resolve, reject)=>{
-    const reader = new FileReader();
-    reader.onload = (e)=>{
-      const img = new Image();
-      img.onload = ()=>{
-        const scale = Math.min(1, maxW / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-// ==== CONFIGURACIÓN DE FIREBASE ====
-// Reemplaza estos valores con los de TU proyecto (ver instrucciones que te dio Claude)
+// ========== FIREBASE ==========
 const firebaseConfig = {
   apiKey: "AIzaSyCklX3TgmOWi1u8PajJjxPgfFM0hgP0a2k",
   authDomain: "control-site-1d6c3.firebaseapp.com",
@@ -288,314 +293,440 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-// ====================================
 
-async function seedIfEmpty(){
+// ========== UTILIDADES ==========
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmt(ts){ return new Date(ts).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }
+function esc(s){ const d=document.createElement('div'); d.textContent=s??''; return d.innerHTML; }
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2300); }
+function initials(n){ return (n||'?').trim().slice(0,2).toUpperCase(); }
+
+function rolLabel(r){ return r==='admin'?'Administrador':r==='tecnico'?'Técnico':'General'; }
+function rolBadge(r){
+  const map={admin:'admin',tecnico:'tecnico',general:'general'};
+  return `<span class="role-badge ${map[r]||''}">${rolLabel(r)}</span>`;
+}
+
+// ========== GUARDAR ==========
+async function saveEquipos(){ try{ await db.ref('equipos').set(equipos); }catch(e){ showToast('Error al guardar'); } }
+async function saveReportes(){ try{ await db.ref('reportes').set(reportes); }catch(e){ showToast('Error al guardar'); } }
+async function saveUsuarios(){ try{ await db.ref('usuarios').set(usuarios); }catch(e){ showToast('Error al guardar'); } }
+
+// ========== SEED ==========
+async function seedEquiposIfEmpty(){
   if(Object.keys(equipos).length) return;
-  const nuevos = {};
   DEFAULT_STRUCTURE.forEach(g=>{
     g.subs.forEach(s=>{
       for(let i=1;i<=s.n;i++){
-        const id = uid();
-        nuevos[id] = { nombre: 'Baño '+i, grupo: g.grupo, subgrupo: s.nombre, estado:'ok', urgente:false, reporteActivoId:null };
-        equipos[id] = nuevos[id];
+        const id=uid();
+        equipos[id]={nombre:'Baño '+i,grupo:g.grupo,subgrupo:s.nombre,estado:'ok',urgente:false,reporteActivoId:null};
       }
     });
   });
   BANIOS_SUELTOS.forEach(nombre=>{
-    const id = uid();
-    nuevos[id] = { nombre, grupo: 'Otros', subgrupo: 'General', estado:'ok', urgente:false, reporteActivoId:null };
-    equipos[id] = nuevos[id];
+    const id=uid();
+    equipos[id]={nombre,grupo:'Otros',subgrupo:'General',estado:'ok',urgente:false,reporteActivoId:null};
   });
   await saveEquipos();
 }
 
-async function saveEquipos(){ try{ await db.ref('equipos').set(equipos); }catch(e){ showToast('Error guardando (revisa tu conexión / configuración Firebase)'); } }
-async function saveReportes(){ try{ await db.ref('reportes').set(reportes); }catch(e){ showToast('Error guardando (revisa tu conexión / configuración Firebase)'); } }
+async function seedAdminIfEmpty(){
+  if(Object.keys(usuarios).length) return;
+  const id=uid();
+  usuarios[id]={nombre:'admin',pin:'0000',rol:'admin'};
+  await saveUsuarios();
+  showToast('Usuario admin creado. PIN: 0000 — Cámbialo pronto.');
+}
 
-// Escucha en tiempo real: en cuanto alguien reporta o repara, todos los demás lo ven sin recargar.
-let primeraCargaEquipos = true;
-db.ref('equipos').on('value', async (snap)=>{
-  equipos = snap.val() || {};
-  if(primeraCargaEquipos){
-    primeraCargaEquipos = false;
-    await seedIfEmpty();
-  }
+// ========== LOGIN ==========
+function checkSesion(){
+  const s = sessionStorage.getItem('sesion_controlsite');
+  if(s){ sesion=JSON.parse(s); showApp(); }
+  else { showLogin(); }
+}
+
+function showLogin(){
+  document.getElementById('loginWrap').style.display='flex';
+  document.getElementById('mainApp').style.display='none';
+}
+
+function showApp(){
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('mainApp').style.display='flex';
+  applyRoleUI();
   render();
+}
+
+function applyRoleUI(){
+  const rol = sesion?.rol;
+  // Botón falla: admin y técnico también pueden reportar
+  document.getElementById('btnAbrirFalla').style.display = (rol==='admin'||rol==='tecnico'||rol==='general') ? 'flex' : 'none';
+  // Nav equipos: solo admin
+  document.getElementById('navEquipos').style.display = rol==='admin' ? 'flex' : 'none';
+  // Nav usuarios: solo admin
+  document.getElementById('navUsuarios').style.display = rol==='admin' ? 'flex' : 'none';
+  // Topbar user info
+  document.getElementById('userAvatar').textContent = initials(sesion?.nombre);
+  document.getElementById('userNameTop').textContent = sesion?.nombre;
+}
+
+document.getElementById('btnLogin').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pin = document.getElementById('loginPin').value.trim();
+  const err = document.getElementById('loginError');
+  err.style.display='none';
+  if(!nombre||!pin){ err.textContent='Completa usuario y PIN.'; err.style.display='block'; return; }
+  const match = Object.entries(usuarios).find(([id,u])=>u.nombre.toLowerCase()===nombre && u.pin===pin);
+  if(!match){ err.style.display='block'; return; }
+  const [id,u] = match;
+  sesion = {id, nombre:u.nombre, rol:u.rol};
+  sessionStorage.setItem('sesion_controlsite', JSON.stringify(sesion));
+  document.getElementById('loginPin').value='';
+  showApp();
 });
-db.ref('reportes').on('value', (snap)=>{
-  reportes = snap.val() || {};
-  render();
+document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('loginPin').focus(); });
+document.getElementById('loginPin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
+
+document.getElementById('btnLogout').addEventListener('click', ()=>{
+  sessionStorage.removeItem('sesion_controlsite');
+  sesion=null;
+  document.getElementById('loginUser').value='';
+  showLogin();
 });
 
+// ========== RENDER ==========
 function render(){
-  document.getElementById('metaLine').textContent = '● Actualizado ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  if(!sesion) return;
+  document.getElementById('metaLine').textContent = '● Actualizado '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
   renderBanner();
   renderChips();
   renderSelectEquipo();
-  if(view==='dashboard' || view==='fallas') renderDashboard();
+  if(view==='dashboard'||view==='fallas') renderDashboard();
   if(view==='historial') renderHistorial();
   if(view==='equipos') renderEquiposAdmin();
+  if(view==='usuarios') renderUsuariosAdmin();
 }
 
 function renderBanner(){
-  const urgentes = Object.values(equipos).filter(e=>e.estado==='falla' && e.urgente).length;
-  document.getElementById('banner').style.display = urgentes>0 ? 'flex' : 'none';
-  document.getElementById('bannerCount').textContent = urgentes;
-  const fallas = Object.values(equipos).filter(e=>e.estado==='falla').length;
-  const ok = Object.keys(equipos).length - fallas;
-  document.getElementById('numOk').textContent = ok;
-  document.getElementById('numFalla').textContent = fallas;
-  document.getElementById('dashStats').style.display = (view==='dashboard'||view==='fallas') ? 'flex' : 'none';
-  const navBadge = document.getElementById('navBadge');
-  if(fallas>0){ navBadge.style.display='block'; navBadge.textContent = fallas; } else { navBadge.style.display='none'; }
+  const urgentes=Object.values(equipos).filter(e=>e.estado==='falla'&&e.urgente).length;
+  document.getElementById('banner').style.display=urgentes>0?'flex':'none';
+  document.getElementById('bannerCount').textContent=urgentes;
+  const fallas=Object.values(equipos).filter(e=>e.estado==='falla').length;
+  const ok=Object.keys(equipos).length-fallas;
+  document.getElementById('numOk').textContent=ok;
+  document.getElementById('numFalla').textContent=fallas;
+  document.getElementById('dashStats').style.display=(view==='dashboard'||view==='fallas')?'flex':'none';
+  const nb=document.getElementById('navBadge');
+  if(fallas>0){nb.style.display='block';nb.textContent=fallas;}else{nb.style.display='none';}
 }
 
 function renderChips(){
-  const chips = [
-    {k:'todos', l:'Todos'},
-    {k:'pendientes', l:'Pendientes'},
-    {k:'falla', l:'Con falla'},
-    {k:'ok', l:'OK'},
-  ];
-  const box = document.getElementById('chips');
-  box.style.display = (view==='dashboard'||view==='fallas') ? 'flex' : 'none';
-  box.innerHTML = '';
+  const chips=[{k:'todos',l:'Todos'},{k:'pendientes',l:'Pendientes'},{k:'falla',l:'Con falla'},{k:'ok',l:'OK'}];
+  const box=document.getElementById('chips');
+  box.style.display=(view==='dashboard'||view==='fallas')?'flex':'none';
+  box.innerHTML='';
   chips.forEach(c=>{
-    const b = document.createElement('button');
-    b.className = 'chip' + (filtro===c.k ? ' active' : '');
-    b.textContent = c.l;
-    b.addEventListener('click', ()=>{ filtro = c.k; render(); });
+    const b=document.createElement('button');
+    b.className='chip'+(filtro===c.k?' active':'');
+    b.textContent=c.l;
+    b.addEventListener('click',()=>{filtro=c.k;render();});
     box.appendChild(b);
   });
 }
 
 function matchesFiltro(eq){
   if(filtro==='todos') return true;
-  if(filtro==='falla' || filtro==='pendientes') return eq.estado==='falla';
+  if(filtro==='falla'||filtro==='pendientes') return eq.estado==='falla';
   if(filtro==='ok') return eq.estado==='ok';
   return true;
 }
 
 function renderDashboard(){
-  const target = document.getElementById('viewDashboard');
-  let html = '';
-  let forceFallaOnly = (view==='fallas');
-  const groups = {};
+  const target=document.getElementById('viewDashboard');
+  const forceFalla=(view==='fallas');
+  const groups={};
   Object.entries(equipos).forEach(([id,eq])=>{
-    if(forceFallaOnly && eq.estado!=='falla') return;
-    if(!forceFallaOnly && !matchesFiltro(eq)) return;
-    const key = eq.grupo || 'Sin grupo';
-    groups[key] = groups[key] || {};
-    const subkey = eq.subgrupo || 'General';
-    groups[key][subkey] = groups[key][subkey] || [];
-    groups[key][subkey].push([id, eq]);
+    if(forceFalla&&eq.estado!=='falla') return;
+    if(!forceFalla&&!matchesFiltro(eq)) return;
+    const g=eq.grupo||'Sin grupo';
+    groups[g]=groups[g]||{};
+    const s=eq.subgrupo||'General';
+    groups[g][s]=groups[g][s]||[];
+    groups[g][s].push([id,eq]);
   });
-  const groupKeys = Object.keys(groups);
-  if(!groupKeys.length){
-    html = '<div class="empty">No hay equipos que coincidan con el filtro.</div>';
-  }
-  groupKeys.forEach(g=>{
-    html += `<div class="group-title">${esc(g)}</div>`;
-    Object.keys(groups[g]).forEach(sub=>{
-      html += `<div class="sub-title">${esc(sub)}</div><div class="items">`;
-      groups[g][sub].forEach(([id,eq])=>{
-        const cls = eq.estado==='falla' ? (eq.urgente ? 'falla urgente' : 'falla') : '';
-        html += `<div class="item ${cls}" data-id="${id}"><span class="dot"></span>${esc(eq.nombre)}${eq.estado==='falla' ? '<span class="flag">🚩</span>' : ''}</div>`;
+  const keys=Object.keys(groups);
+  if(!keys.length){target.innerHTML='<div class="empty">No hay equipos que coincidan.</div>';return;}
+  let html='';
+  keys.forEach(g=>{
+    html+=`<div class="group-title">${esc(g)}</div>`;
+    Object.keys(groups[g]).forEach(s=>{
+      html+=`<div class="sub-title">${esc(s)}</div><div class="items">`;
+      groups[g][s].forEach(([id,eq])=>{
+        const cls=eq.estado==='falla'?(eq.urgente?'falla urgente':'falla'):'';
+        html+=`<div class="item ${cls}" data-id="${id}"><span class="dot"></span>${esc(eq.nombre)}${eq.estado==='falla'?'<span style="font-size:11px">🚩</span>':''}</div>`;
       });
-      html += `</div>`;
+      html+=`</div>`;
     });
   });
-  target.innerHTML = html;
+  target.innerHTML=html;
   target.querySelectorAll('.item').forEach(it=>{
-    it.addEventListener('click', ()=>{
-      const id = it.dataset.id;
-      const eq = equipos[id];
-      if(eq.estado==='falla') openReparar(id);
-      else openReportar(id);
+    it.addEventListener('click',()=>{
+      const id=it.dataset.id;
+      const eq=equipos[id];
+      if(eq.estado==='falla'){
+        if(sesion.rol==='tecnico'||sesion.rol==='admin') openReparar(id);
+        else showToast('Solo técnicos pueden marcar reparaciones.');
+      } else {
+        openReportar(id);
+      }
     });
   });
 }
 
 function renderSelectEquipo(){
-  const sel = document.getElementById('repEquipo');
-  const cur = sel.value;
-  sel.innerHTML = '';
-  Object.entries(equipos).sort((a,b)=> (a[1].grupo+a[1].subgrupo+a[1].nombre).localeCompare(b[1].grupo+b[1].subgrupo+b[1].nombre))
-  .forEach(([id,eq])=>{
-    const opt = document.createElement('option');
-    opt.value = id;
-    opt.textContent = `${eq.grupo} · ${eq.subgrupo} · ${eq.nombre}`;
-    sel.appendChild(opt);
-  });
-  if(Object.keys(equipos).includes(cur)) sel.value = cur;
+  const sel=document.getElementById('repEquipo');
+  const cur=sel.value;
+  sel.innerHTML='';
+  Object.entries(equipos)
+    .sort((a,b)=>(a[1].grupo+a[1].subgrupo+a[1].nombre).localeCompare(b[1].grupo+b[1].subgrupo+b[1].nombre))
+    .forEach(([id,eq])=>{
+      const opt=document.createElement('option');
+      opt.value=id;
+      opt.textContent=`${eq.grupo} · ${eq.subgrupo} · ${eq.nombre}`;
+      sel.appendChild(opt);
+    });
+  if(Object.keys(equipos).includes(cur)) sel.value=cur;
 }
 
 function renderHistorial(){
-  const target = document.getElementById('viewHistorial');
-  const list = Object.values(reportes).sort((a,b)=> b.fecha - a.fecha);
-  if(!list.length){ target.innerHTML = '<div class="empty">Sin reportes todavía.</div>'; return; }
-  let html = '';
+  const target=document.getElementById('viewHistorial');
+  const list=Object.values(reportes).sort((a,b)=>b.fecha-a.fecha);
+  if(!list.length){target.innerHTML='<div class="empty">Sin reportes todavía.</div>';return;}
+  let html='';
   list.forEach(r=>{
-    html += `<div class="hist-card">
-      <div class="hist-top">
-        <div class="name">${esc(r.equipoNombre)} ${r.urgente ? '🟠' : ''}</div>
-        <span class="pill ${r.estado}">${r.estado}</span>
-      </div>
+    html+=`<div class="hist-card">
+      <div class="hist-top"><div class="name">${esc(r.equipoNombre)} ${r.urgente?'🟠':''}</div><span class="pill ${r.estado}">${r.estado}</span></div>
       <div class="hist-row"><b>Reportó:</b> ${esc(r.reportante)} — ${fmt(r.fecha)}</div>
       <div class="hist-row"><b>Problema:</b> ${esc(r.problema)}</div>
-      ${r.foto ? `<img src="${r.foto}" style="margin-top:8px;max-width:100%;border-radius:9px;border:1px solid var(--line);">` : ''}
-      ${r.estado==='reparado' ? `
+      ${r.foto?`<img src="${r.foto}" style="margin-top:8px;max-width:100%;border-radius:9px;border:1px solid var(--line);">`:'' }
+      ${r.estado==='reparado'?`
+        <div class="section-sep"></div>
         <div class="hist-row"><b>Reparó:</b> ${esc(r.tecnico)} — ${fmt(r.fechaReparacion)}</div>
         <div class="hist-row"><b>Solución:</b> ${esc(r.solucion)}</div>
-        <div class="hist-row"><b>Refacciones:</b> ${r.usoRefacciones==='si' ? esc(r.refacciones||'—') : 'No se usaron'}</div>
-      ` : ''}
+        <div class="hist-row"><b>Refacciones:</b> ${r.usoRefacciones==='si'?esc(r.refacciones||'—'):'No se usaron'}</div>
+      `:''}
     </div>`;
   });
-  target.innerHTML = html;
+  target.innerHTML=html;
 }
 
 function renderEquiposAdmin(){
-  const target = document.getElementById('viewEquipos');
-  let html = `
-    <div class="group-title">Agregar equipo</div>
-    <label>Grupo</label><input id="eqGrupo" placeholder="Ej. OB — Outbound">
-    <label>Subgrupo</label><input id="eqSubgrupo" placeholder="Ej. Sellers Sección 1">
-    <label>Nombre</label><input id="eqNombre" placeholder="Ej. Baño 8">
-    <button class="btn btn-primary" id="btnAddEquipo" style="margin-top:14px;width:100%;">Agregar</button>
-    <div class="group-title" style="margin-top:26px;">Equipos registrados (${Object.keys(equipos).length})</div>
-  `;
-  Object.entries(equipos).sort((a,b)=> (a[1].grupo+a[1].subgrupo+a[1].nombre).localeCompare(b[1].grupo+b[1].subgrupo+b[1].nombre))
-  .forEach(([id,eq])=>{
-    html += `<div class="hist-card" style="display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-weight:600;font-size:13.5px;">${esc(eq.nombre)} <span class="pill ${eq.estado==='falla'?'pendiente':'reparado'}">${eq.estado}</span></div>
-        <div class="hist-row" style="margin-top:2px;">${esc(eq.grupo)} · ${esc(eq.subgrupo)}</div>
-      </div>
-      <button class="btn btn-ghost" style="width:auto;padding:7px 12px;font-size:11px;" data-del="${id}">Eliminar</button>
-    </div>`;
-  });
-  target.innerHTML = html;
-  document.getElementById('btnAddEquipo').addEventListener('click', async ()=>{
-    const grupo = document.getElementById('eqGrupo').value.trim();
-    const subgrupo = document.getElementById('eqSubgrupo').value.trim();
-    const nombre = document.getElementById('eqNombre').value.trim();
-    if(!grupo || !subgrupo || !nombre){ showToast('Completa grupo, subgrupo y nombre.'); return; }
-    const id = uid();
-    equipos[id] = { nombre, grupo, subgrupo, estado:'ok', urgente:false, reporteActivoId:null };
-    await saveEquipos();
-    showToast('Equipo agregado.');
-    render();
+  if(sesion?.rol!=='admin'){document.getElementById('viewEquipos').innerHTML='<div class="empty">Sin acceso.</div>';return;}
+  const target=document.getElementById('viewEquipos');
+  let html=`<div class="section-title">Agregar equipo</div>
+    <label>Grupo</label><input id="eqGrupo" placeholder="Ej. Lobby">
+    <label>Subgrupo / Módulo</label><input id="eqSubgrupo" placeholder="Ej. Módulo 6">
+    <label>Nombre</label><input id="eqNombre" placeholder="Ej. Baño 9">
+    <button class="btn btn-primary" id="btnAddEquipo" style="margin-top:14px;">Agregar</button>
+    <div class="section-title" style="margin-top:26px;">Equipos registrados (${Object.keys(equipos).length})</div>`;
+  Object.entries(equipos)
+    .sort((a,b)=>(a[1].grupo+a[1].subgrupo+a[1].nombre).localeCompare(b[1].grupo+b[1].subgrupo+b[1].nombre))
+    .forEach(([id,eq])=>{
+      html+=`<div class="hist-card" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div><div style="font-weight:600;font-size:13px;">${esc(eq.nombre)} <span class="pill ${eq.estado==='falla'?'pendiente':'reparado'}">${eq.estado}</span></div>
+        <div class="hist-row" style="margin-top:2px;">${esc(eq.grupo)} · ${esc(eq.subgrupo)}</div></div>
+        <button class="btn-sm" data-del="${id}">Eliminar</button></div>`;
+    });
+  target.innerHTML=html;
+  document.getElementById('btnAddEquipo').addEventListener('click',async()=>{
+    const grupo=document.getElementById('eqGrupo').value.trim();
+    const sub=document.getElementById('eqSubgrupo').value.trim();
+    const nombre=document.getElementById('eqNombre').value.trim();
+    if(!grupo||!sub||!nombre){showToast('Completa grupo, módulo y nombre.');return;}
+    const id=uid();
+    equipos[id]={nombre,grupo,subgrupo:sub,estado:'ok',urgente:false,reporteActivoId:null};
+    await saveEquipos(); showToast('Equipo agregado.'); render();
   });
   target.querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      if(!confirm('¿Eliminar este equipo? Su historial de reportes se conserva.')) return;
+    btn.addEventListener('click',async()=>{
+      if(!confirm('¿Eliminar este equipo?')) return;
       delete equipos[btn.dataset.del];
-      await saveEquipos();
-      render();
+      await saveEquipos(); render();
     });
   });
 }
 
-// Navegación
+function renderUsuariosAdmin(){
+  if(sesion?.rol!=='admin'){document.getElementById('viewUsuarios').innerHTML='<div class="empty">Sin acceso.</div>';return;}
+  const target=document.getElementById('viewUsuarios');
+  let html=`<div class="section-title">Agregar usuario</div>
+    <label>Nombre de usuario</label><input id="nuNombre" placeholder="Ej. juan">
+    <label>PIN (4-8 dígitos)</label><input id="nuPin" type="password" placeholder="••••" maxlength="8">
+    <label>Rol</label>
+    <select id="nuRol">
+      <option value="general">General (solo reportar)</option>
+      <option value="tecnico">Técnico (reportar + reparar)</option>
+      <option value="admin">Administrador (acceso total)</option>
+    </select>
+    <button class="btn btn-primary" id="btnAddUser" style="margin-top:14px;">Crear usuario</button>
+    <div class="section-title" style="margin-top:26px;">Usuarios registrados</div>`;
+  Object.entries(usuarios).forEach(([id,u])=>{
+    const esYo = sesion?.id===id;
+    html+=`<div class="user-card">
+      <div class="uinfo">
+        <div class="avatar-lg">${initials(u.nombre)}</div>
+        <div><div class="uname">${esc(u.nombre)} ${esYo?'<span style="font-size:10px;color:var(--muted)">(tú)</span>':''}</div>
+        <div class="urole">${rolLabel(u.rol)}</div></div>
+      </div>
+      ${!esYo?`<button class="btn-sm" data-del-user="${id}">Eliminar</button>`:''}
+    </div>`;
+  });
+  target.innerHTML=html;
+  document.getElementById('btnAddUser').addEventListener('click',async()=>{
+    const nombre=document.getElementById('nuNombre').value.trim().toLowerCase();
+    const pin=document.getElementById('nuPin').value.trim();
+    const rol=document.getElementById('nuRol').value;
+    if(!nombre||!pin){showToast('Completa nombre y PIN.');return;}
+    if(pin.length<4){showToast('El PIN debe tener al menos 4 dígitos.');return;}
+    const existe=Object.values(usuarios).some(u=>u.nombre.toLowerCase()===nombre);
+    if(existe){showToast('Ese nombre de usuario ya existe.');return;}
+    const id=uid();
+    usuarios[id]={nombre,pin,rol};
+    await saveUsuarios(); showToast('Usuario creado.'); render();
+  });
+  target.querySelectorAll('[data-del-user]').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+      if(!confirm('¿Eliminar este usuario?')) return;
+      delete usuarios[btn.dataset.delUser];
+      await saveUsuarios(); render();
+    });
+  });
+}
+
+// ========== NAVEGACIÓN ==========
 document.querySelectorAll('nav.bottom button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
+  btn.addEventListener('click',()=>{
     document.querySelectorAll('nav.bottom button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    view = btn.dataset.view;
-    document.getElementById('viewDashboard').style.display = (view==='dashboard'||view==='fallas') ? 'block' : 'none';
-    document.getElementById('viewHistorial').style.display = view==='historial' ? 'block' : 'none';
-    document.getElementById('viewEquipos').style.display = view==='equipos' ? 'block' : 'none';
+    view=btn.dataset.view;
+    ['dashboard','historial','equipos','usuarios'].forEach(v=>{
+      const el=document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1));
+      if(el) el.style.display=(v===view||(view==='fallas'&&v==='dashboard'))?'block':'none';
+    });
     render();
   });
 });
-document.getElementById('btnRefresh').addEventListener('click', ()=>{ render(); showToast('Ya está sincronizado en tiempo real ✓'); });
 
-// Reportar
+// ========== REPORTAR ==========
 function openReportar(prefId){
-  document.getElementById('repNombre').value='';
+  document.getElementById('reportarMeta').textContent='Reportando como: '+sesion?.nombre;
   document.getElementById('repProblema').value='';
   document.getElementById('repUrgente').checked=false;
   document.getElementById('repFoto').value='';
   document.getElementById('repFotoPreview').style.display='none';
-  document.getElementById('repFotoPreview').removeAttribute('src');
-  fotoActual = null;
+  fotoActual=null;
   renderSelectEquipo();
-  if(prefId) document.getElementById('repEquipo').value = prefId;
+  if(prefId) document.getElementById('repEquipo').value=prefId;
   document.getElementById('modalReportar').classList.add('show');
 }
-document.getElementById('btnAbrirFalla').addEventListener('click', ()=>openReportar(null));
-document.getElementById('cerrarReportar').addEventListener('click', ()=> document.getElementById('modalReportar').classList.remove('show'));
-document.getElementById('repFoto').addEventListener('change', async (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
+document.getElementById('btnAbrirFalla').addEventListener('click',()=>openReportar(null));
+document.getElementById('cerrarReportar').addEventListener('click',()=>document.getElementById('modalReportar').classList.remove('show'));
+
+function resizeImage(file,maxW=900,quality=0.7){
+  return new Promise((res,rej)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        const scale=Math.min(1,maxW/img.width);
+        const canvas=document.createElement('canvas');
+        canvas.width=img.width*scale; canvas.height=img.height*scale;
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        res(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=rej; img.src=e.target.result;
+    };
+    reader.onerror=rej; reader.readAsDataURL(file);
+  });
+}
+document.getElementById('repFoto').addEventListener('change',async e=>{
+  const file=e.target.files[0]; if(!file) return;
   showToast('Procesando foto…');
-  try{
-    fotoActual = await resizeImage(file);
-    const prev = document.getElementById('repFotoPreview');
-    prev.src = fotoActual;
-    prev.style.display = 'block';
-  }catch(err){ showToast('No se pudo cargar la foto.'); }
+  try{ fotoActual=await resizeImage(file); const p=document.getElementById('repFotoPreview'); p.src=fotoActual; p.style.display='block'; }
+  catch(err){ showToast('No se pudo cargar la foto.'); }
 });
-document.getElementById('enviarReportar').addEventListener('click', async ()=>{
-  const nombre = document.getElementById('repNombre').value.trim();
-  const equipoId = document.getElementById('repEquipo').value;
-  const problema = document.getElementById('repProblema').value.trim();
-  const urgente = document.getElementById('repUrgente').checked;
-  if(!equipoId){ showToast('No hay equipos registrados.'); return; }
-  if(!nombre || !problema){ showToast('Completa tu nombre y el problema.'); return; }
-  const id = uid();
-  const eq = equipos[equipoId];
-  reportes[id] = { equipoId, equipoNombre: `${eq.grupo} · ${eq.subgrupo} · ${eq.nombre}`, reportante: nombre, problema, fecha: Date.now(), estado:'pendiente', urgente, foto: fotoActual };
-  eq.estado = 'falla';
-  eq.urgente = urgente;
-  eq.reporteActivoId = id;
+document.getElementById('enviarReportar').addEventListener('click',async()=>{
+  const equipoId=document.getElementById('repEquipo').value;
+  const problema=document.getElementById('repProblema').value.trim();
+  const urgente=document.getElementById('repUrgente').checked;
+  if(!equipoId){showToast('No hay equipos.');return;}
+  if(!problema){showToast('Describe el problema.');return;}
+  const id=uid();
+  const eq=equipos[equipoId];
+  reportes[id]={equipoId,equipoNombre:`${eq.grupo} · ${eq.subgrupo} · ${eq.nombre}`,reportante:sesion.nombre,problema,fecha:Date.now(),estado:'pendiente',urgente,foto:fotoActual};
+  eq.estado='falla'; eq.urgente=urgente; eq.reporteActivoId=id;
   await saveReportes(); await saveEquipos();
   document.getElementById('modalReportar').classList.remove('show');
-  showToast('Reporte enviado.');
-  render();
+  showToast('Reporte enviado.'); render();
 });
 
-// Reparar
+// ========== REPARAR ==========
 function openReparar(id){
-  activeEquipoId = id;
-  const eq = equipos[id];
-  const rep = eq.reporteActivoId ? reportes[eq.reporteActivoId] : null;
-  document.getElementById('reparaTitulo').textContent = 'Reparar: ' + eq.nombre;
-  document.getElementById('reparaMeta').innerHTML = rep
-    ? `Reportó ${esc(rep.reportante)} · ${fmt(rep.fecha)} · "${esc(rep.problema)}"` + (rep.foto ? `<br><img src="${rep.foto}" style="margin-top:8px;max-width:100%;border-radius:9px;border:1px solid var(--line);">` : '')
-    : 'Sin detalle.';
-  document.getElementById('repTecnico').value='';
+  activeEquipoId=id;
+  const eq=equipos[id];
+  const rep=eq.reporteActivoId?reportes[eq.reporteActivoId]:null;
+  document.getElementById('reparaTitulo').textContent='Reparar: '+eq.nombre;
+  document.getElementById('reparaMeta').innerHTML=rep
+    ?`Reportó <b>${esc(rep.reportante)}</b> · ${fmt(rep.fecha)}<br><span style="color:var(--text)">"${esc(rep.problema)}"</span>`+(rep.foto?`<br><img src="${rep.foto}" style="margin-top:8px;max-width:100%;border-radius:9px;border:1px solid var(--line);">`:'')
+    :'Sin detalle.';
   document.getElementById('repSolucion').value='';
   document.getElementById('repUsoRefacciones').value='no';
   document.getElementById('repRefacciones').value='';
   document.getElementById('refaccionesBox').style.display='none';
   document.getElementById('modalReparar').classList.add('show');
 }
-document.getElementById('cerrarReparar').addEventListener('click', ()=> document.getElementById('modalReparar').classList.remove('show'));
-document.getElementById('repUsoRefacciones').addEventListener('change', e=>{
-  document.getElementById('refaccionesBox').style.display = e.target.value==='si' ? 'block' : 'none';
+document.getElementById('cerrarReparar').addEventListener('click',()=>document.getElementById('modalReparar').classList.remove('show'));
+document.getElementById('repUsoRefacciones').addEventListener('change',e=>{
+  document.getElementById('refaccionesBox').style.display=e.target.value==='si'?'block':'none';
 });
-document.getElementById('guardarReparar').addEventListener('click', async ()=>{
-  const tecnico = document.getElementById('repTecnico').value.trim();
-  const solucion = document.getElementById('repSolucion').value.trim();
-  const usoRefacciones = document.getElementById('repUsoRefacciones').value;
-  const refacciones = document.getElementById('repRefacciones').value.trim();
-  if(!tecnico || !solucion){ showToast('Completa tu nombre y la solución.'); return; }
-  const eq = equipos[activeEquipoId];
-  if(eq.reporteActivoId && reportes[eq.reporteActivoId]){
-    const rep = reportes[eq.reporteActivoId];
-    rep.estado='reparado'; rep.tecnico=tecnico; rep.solucion=solucion;
+document.getElementById('guardarReparar').addEventListener('click',async()=>{
+  const solucion=document.getElementById('repSolucion').value.trim();
+  const usoRefacciones=document.getElementById('repUsoRefacciones').value;
+  const refacciones=document.getElementById('repRefacciones').value.trim();
+  if(!solucion){showToast('Describe la solución.');return;}
+  const eq=equipos[activeEquipoId];
+  if(eq.reporteActivoId&&reportes[eq.reporteActivoId]){
+    const rep=reportes[eq.reporteActivoId];
+    rep.estado='reparado'; rep.tecnico=sesion.nombre; rep.solucion=solucion;
     rep.usoRefacciones=usoRefacciones; rep.refacciones=refacciones; rep.fechaReparacion=Date.now();
   }
   eq.estado='ok'; eq.urgente=false; eq.reporteActivoId=null;
   await saveReportes(); await saveEquipos();
   document.getElementById('modalReparar').classList.remove('show');
-  showToast('Equipo marcado como reparado.');
-  render();
+  showToast('Equipo reparado ✓'); render();
 });
 
-// Nota: la carga inicial y la sincronización ya las maneja db.ref(...).on('value', ...) arriba.
+// ========== LISTENERS FIREBASE ==========
+let primeraCargaEq=true, primeraCargaUs=true;
+db.ref('equipos').on('value',async snap=>{
+  equipos=snap.val()||{};
+  if(primeraCargaEq){ primeraCargaEq=false; await seedEquiposIfEmpty(); }
+  if(sesion) render();
+});
+db.ref('reportes').on('value',snap=>{
+  reportes=snap.val()||{};
+  if(sesion) render();
+});
+db.ref('usuarios').on('value',async snap=>{
+  usuarios=snap.val()||{};
+  if(primeraCargaUs){ primeraCargaUs=false; await seedAdminIfEmpty(); }
+  // Si sesion activa, verificar que el usuario sigue existiendo
+  if(sesion){
+    const sigue=Object.values(usuarios).some(u=>u.nombre===sesion.nombre&&u.pin);
+    if(!sigue){ sessionStorage.removeItem('sesion_controlsite'); sesion=null; showLogin(); }
+    else render();
+  } else { checkSesion(); }
+});
 </script>
 </body>
 </html>

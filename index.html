@@ -575,10 +575,19 @@ function renderUsuariosAdmin(){
     html+=`<div class="user-card">
       <div class="uinfo">
         <div class="avatar-lg">${initials(u.nombre)}</div>
-        <div><div class="uname">${esc(u.nombre)} ${esYo?'<span style="font-size:10px;color:var(--muted)">(tú)</span>':''}</div>
-        <div class="urole">${rolLabel(u.rol)}</div></div>
+        <div>
+          <div class="uname">${esc(u.nombre)} ${esYo?'<span style="font-size:10px;color:var(--muted)">(tú)</span>':''}</div>
+          <div class="urole">${rolLabel(u.rol)}</div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;color:var(--muted);">PIN:</span>
+            <span class="pin-dots" data-pin="${esc(u.pin)}" style="font-family:var(--mono);font-size:12px;letter-spacing:2px;">••••</span>
+            <button class="pin-eye" style="background:none;border:none;cursor:pointer;font-size:13px;padding:0;color:var(--muted);">👁</button>
+          </div>
+        </div>
       </div>
-      ${!esYo?`<button class="btn-sm" data-del-user="${id}">Eliminar</button>`:''}
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        ${!esYo?`<button class="btn-sm" data-del-user="${id}">Eliminar</button>`:''}
+      </div>
     </div>`;
   });
   target.innerHTML=html;
@@ -599,6 +608,19 @@ function renderUsuariosAdmin(){
       if(!confirm('¿Eliminar este usuario?')) return;
       delete usuarios[btn.dataset.delUser];
       await saveUsuarios(); render();
+    });
+  });
+  // Ojito: mostrar/ocultar PIN
+  target.querySelectorAll('.pin-eye').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const span = btn.previousElementSibling;
+      if(span.textContent==='••••'){
+        span.textContent = span.dataset.pin;
+        btn.textContent = '🙈';
+      } else {
+        span.textContent = '••••';
+        btn.textContent = '👁';
+      }
     });
   });
 }

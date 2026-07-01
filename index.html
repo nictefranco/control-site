@@ -252,6 +252,31 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- MODAL EDITAR USUARIO -->
+<div class="modal-bg" id="modalEditUser">
+  <div class="modal">
+    <h3>Editar usuario</h3>
+    <div class="meta-line" id="editUserMeta"></div>
+    <label>Nombre de usuario</label>
+    <input id="editNombre" placeholder="Ej. juan">
+    <label>Nuevo PIN <span style="font-weight:400;color:var(--muted)">(deja vacío para no cambiar)</span></label>
+    <div style="position:relative;">
+      <input id="editPin" type="password" placeholder="••••" maxlength="20" style="padding-right:40px;">
+      <button id="editPinEye" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted);">👁</button>
+    </div>
+    <label>Rol</label>
+    <select id="editRol">
+      <option value="general">General (solo reportar)</option>
+      <option value="tecnico">Técnico (reportar + reparar)</option>
+      <option value="admin">Administrador (acceso total)</option>
+    </select>
+    <div class="row2">
+      <button class="btn btn-ghost" id="cerrarEditUser">Cancelar</button>
+      <button class="btn btn-primary" id="guardarEditUser">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ========== ESTADO ==========
 let equipos = {};
@@ -376,7 +401,7 @@ document.getElementById('btnLogin').addEventListener('click', async ()=>{
   const err = document.getElementById('loginError');
   err.style.display='none';
   if(!nombre||!pin){ err.textContent='Completa usuario y PIN.'; err.style.display='block'; return; }
-  const match = Object.entries(usuarios).find(([id,u])=>u.nombre.toLowerCase()===nombre && u.pin===pin);
+  const match = Object.entries(usuarios).find(([id,u])=>u.nombre.toLowerCase()===nombre.toLowerCase() && u.pin===pin);
   if(!match){ err.style.display='block'; return; }
   const [id,u] = match;
   sesion = {id, nombre:u.nombre, rol:u.rol};
@@ -387,7 +412,10 @@ document.getElementById('btnLogin').addEventListener('click', async ()=>{
 document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('loginPin').focus(); });
 document.getElementById('loginPin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
 
-document.getElementById('btnLogout').addEventListener('click', ()=>{
+document.getElementById('userChip').addEventListener('click',()=>{
+  if(!sesion) return;
+  openEditUser(sesion.id, usuarios[sesion.id]);
+});
   sessionStorage.removeItem('sesion_controlsite');
   sesion=null;
   document.getElementById('loginUser').value='';
@@ -561,7 +589,7 @@ function renderUsuariosAdmin(){
   const target=document.getElementById('viewUsuarios');
   let html=`<div class="section-title">Agregar usuario</div>
     <label>Nombre de usuario</label><input id="nuNombre" placeholder="Ej. juan">
-    <label>PIN (4-8 dígitos)</label><input id="nuPin" type="password" placeholder="••••" maxlength="8">
+    <label>PIN (4-20 caracteres)</label><input id="nuPin" type="password" placeholder="••••" maxlength="20">
     <label>Rol</label>
     <select id="nuRol">
       <option value="general">General (solo reportar)</option>
@@ -586,18 +614,19 @@ function renderUsuariosAdmin(){
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        <button class="btn-sm" style="background:rgba(52,131,250,.1);color:var(--meli-blue);" data-edit-user="${id}">✏️ Editar</button>
         ${!esYo?`<button class="btn-sm" data-del-user="${id}">Eliminar</button>`:''}
       </div>
     </div>`;
   });
   target.innerHTML=html;
   document.getElementById('btnAddUser').addEventListener('click',async()=>{
-    const nombre=document.getElementById('nuNombre').value.trim().toLowerCase();
+    const nombre=document.getElementById('nuNombre').value.trim();
     const pin=document.getElementById('nuPin').value.trim();
     const rol=document.getElementById('nuRol').value;
     if(!nombre||!pin){showToast('Completa nombre y PIN.');return;}
-    if(pin.length<4){showToast('El PIN debe tener al menos 4 dígitos.');return;}
-    const existe=Object.values(usuarios).some(u=>u.nombre.toLowerCase()===nombre);
+    if(pin.length<4){showToast('El PIN debe tener al menos 4 caracteres.');return;}
+    const existe=Object.values(usuarios).some(u=>u.nombre.toLowerCase()===nombre.toLowerCase());
     if(existe){showToast('Ese nombre de usuario ya existe.');return;}
     const id=uid();
     usuarios[id]={nombre,pin,rol};
@@ -621,6 +650,14 @@ function renderUsuariosAdmin(){
         span.textContent = '••••';
         btn.textContent = '👁';
       }
+    });
+  });
+  // Editar usuario
+  target.querySelectorAll('[data-edit-user]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id = btn.dataset.editUser;
+      const u = usuarios[id];
+      openEditUser(id, u);
     });
   });
 }
@@ -728,7 +765,54 @@ document.getElementById('guardarReparar').addEventListener('click',async()=>{
   showToast('Equipo reparado ✓'); render();
 });
 
-// ========== LISTENERS FIREBASE ==========
+// ========== EDITAR USUARIO ==========
+let editUserId = null;
+function openEditUser(id, u){
+  editUserId = id;
+  const esYo = sesion?.id === id;
+  document.getElementById('editUserMeta').textContent = esYo ? 'Editando tu propio usuario' : `Editando: ${u.nombre}`;
+  document.getElementById('editNombre').value = u.nombre;
+  document.getElementById('editPin').value = '';
+  document.getElementById('editRol').value = u.rol;
+  // Si no es admin, ocultar cambio de rol
+  document.getElementById('editRol').closest('div')?.previousElementSibling;
+  const rolLabel = document.getElementById('editRol').previousElementSibling;
+  const mostrarRol = sesion?.rol === 'admin';
+  if(rolLabel) rolLabel.style.display = mostrarRol ? 'block' : 'none';
+  document.getElementById('editRol').style.display = mostrarRol ? 'block' : 'none';
+  document.getElementById('modalEditUser').classList.add('show');
+}
+document.getElementById('cerrarEditUser').addEventListener('click',()=>document.getElementById('modalEditUser').classList.remove('show'));
+document.getElementById('editPinEye').addEventListener('click',()=>{
+  const inp = document.getElementById('editPin');
+  const btn = document.getElementById('editPinEye');
+  if(inp.type==='password'){ inp.type='text'; btn.textContent='🙈'; }
+  else { inp.type='password'; btn.textContent='👁'; }
+});
+document.getElementById('guardarEditUser').addEventListener('click', async()=>{
+  const nombre = document.getElementById('editNombre').value.trim().toLowerCase();
+  const pin = document.getElementById('editPin').value.trim();
+  const rol = document.getElementById('editRol').value;
+  if(!nombre){ showToast('El nombre no puede estar vacío.'); return; }
+  if(pin && pin.length < 4){ showToast('El PIN debe tener al menos 4 caracteres.'); return; }
+  // Verificar que no exista otro usuario con el mismo nombre
+  const duplicado = Object.entries(usuarios).some(([id,u])=>u.nombre.toLowerCase()===nombre.toLowerCase() && id!==editUserId);
+  if(duplicado){ showToast('Ese nombre de usuario ya existe.'); return; }
+  usuarios[editUserId].nombre = nombre;
+  if(pin) usuarios[editUserId].pin = pin;
+  if(sesion?.rol==='admin') usuarios[editUserId].rol = rol;
+  // Si estaba editando su propia sesión, actualizar sesion local
+  if(sesion?.id === editUserId){
+    sesion.nombre = nombre;
+    sesion.rol = usuarios[editUserId].rol;
+    sessionStorage.setItem('sesion_controlsite', JSON.stringify(sesion));
+    applyRoleUI();
+  }
+  await saveUsuarios();
+  document.getElementById('modalEditUser').classList.remove('show');
+  showToast('Usuario actualizado ✓');
+  render();
+});
 let primeraCargaEq=true, primeraCargaUs=true;
 db.ref('equipos').on('value',async snap=>{
   equipos=snap.val()||{};
@@ -742,12 +826,17 @@ db.ref('reportes').on('value',snap=>{
 db.ref('usuarios').on('value',async snap=>{
   usuarios=snap.val()||{};
   if(primeraCargaUs){ primeraCargaUs=false; await seedAdminIfEmpty(); }
-  // Si sesion activa, verificar que el usuario sigue existiendo
   if(sesion){
     const sigue=Object.values(usuarios).some(u=>u.nombre===sesion.nombre&&u.pin);
     if(!sigue){ sessionStorage.removeItem('sesion_controlsite'); sesion=null; showLogin(); }
     else render();
   } else { checkSesion(); }
+});
+
+// Toque en el chip de usuario abre edición del propio perfil
+document.getElementById('userChip').addEventListener('click',()=>{
+  if(!sesion || !usuarios[sesion.id]) return;
+  openEditUser(sesion.id, usuarios[sesion.id]);
 });
 </script>
 </body>

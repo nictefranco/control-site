@@ -396,7 +396,7 @@ function applyRoleUI(){
 }
 
 document.getElementById('btnLogin').addEventListener('click', async ()=>{
-  const nombre = document.getElementById('loginUser').value.trim().toLowerCase();
+  const nombre = document.getElementById('loginUser').value.trim();
   const pin = document.getElementById('loginPin').value.trim();
   const err = document.getElementById('loginError');
   err.style.display='none';

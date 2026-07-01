@@ -413,9 +413,10 @@ document.getElementById('loginUser').addEventListener('keydown', e=>{ if(e.key==
 document.getElementById('loginPin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
 
 document.getElementById('userChip').addEventListener('click',()=>{
-  if(!sesion) return;
+  if(!sesion || !usuarios[sesion.id]) return;
   openEditUser(sesion.id, usuarios[sesion.id]);
 });
+document.getElementById('btnLogout').addEventListener('click',()=>{
   sessionStorage.removeItem('sesion_controlsite');
   sesion=null;
   document.getElementById('loginUser').value='';

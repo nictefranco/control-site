@@ -145,7 +145,7 @@
     <label>Usuario</label>
     <input id="loginUser" placeholder="Tu usuario" autocomplete="username">
     <label>PIN</label>
-    <input id="loginPin" type="password" placeholder="••••" maxlength="8" autocomplete="current-password">
+    <input id="loginPin" type="password" placeholder="••••" maxlength="20" autocomplete="current-password">
     <button class="btn-login" id="btnLogin">Entrar</button>
     <div class="login-error" id="loginError">Usuario o PIN incorrecto.</div>
   </div>
@@ -791,7 +791,7 @@ document.getElementById('editPinEye').addEventListener('click',()=>{
   else { inp.type='password'; btn.textContent='👁'; }
 });
 document.getElementById('guardarEditUser').addEventListener('click', async()=>{
-  const nombre = document.getElementById('editNombre').value.trim().toLowerCase();
+  const nombre = document.getElementById('editNombre').value.trim();
   const pin = document.getElementById('editPin').value.trim();
   const rol = document.getElementById('editRol').value;
   if(!nombre){ showToast('El nombre no puede estar vacío.'); return; }
@@ -832,12 +832,6 @@ db.ref('usuarios').on('value',async snap=>{
     if(!sigue){ sessionStorage.removeItem('sesion_controlsite'); sesion=null; showLogin(); }
     else render();
   } else { checkSesion(); }
-});
-
-// Toque en el chip de usuario abre edición del propio perfil
-document.getElementById('userChip').addEventListener('click',()=>{
-  if(!sesion || !usuarios[sesion.id]) return;
-  openEditUser(sesion.id, usuarios[sesion.id]);
 });
 </script>
 </body>

@@ -267,7 +267,7 @@
     <label>Rol</label>
     <select id="editRol">
       <option value="general">General (solo reportar)</option>
-      <option value="tecnico">Técnico (reportar + reparar)</option>
+      <option value="tecnico">Técnico (solo reparar)</option>
       <option value="admin">Administrador (acceso total)</option>
     </select>
     <div class="row2">
@@ -385,7 +385,7 @@ function showApp(){
 function applyRoleUI(){
   const rol = sesion?.rol;
   // Botón falla: admin y técnico también pueden reportar
-  document.getElementById('btnAbrirFalla').style.display = (rol==='admin'||rol==='tecnico'||rol==='general') ? 'flex' : 'none';
+  document.getElementById('btnAbrirFalla').style.display = (rol==='admin'||rol==='general') ? 'flex' : 'none';
   // Nav equipos: solo admin
   document.getElementById('navEquipos').style.display = rol==='admin' ? 'flex' : 'none';
   // Nav usuarios: solo admin
@@ -506,7 +506,8 @@ function renderDashboard(){
         if(sesion.rol==='tecnico'||sesion.rol==='admin') openReparar(id);
         else showToast('Solo técnicos pueden marcar reparaciones.');
       } else {
-        openReportar(id);
+        if(sesion.rol==='general'||sesion.rol==='admin') openReportar(id);
+        else showToast('Los técnicos no pueden reportar fallas.');
       }
     });
   });
@@ -594,7 +595,7 @@ function renderUsuariosAdmin(){
     <label>Rol</label>
     <select id="nuRol">
       <option value="general">General (solo reportar)</option>
-      <option value="tecnico">Técnico (reportar + reparar)</option>
+      <option value="tecnico">Técnico (solo reparar)</option>
       <option value="admin">Administrador (acceso total)</option>
     </select>
     <button class="btn btn-primary" id="btnAddUser" style="margin-top:14px;">Crear usuario</button>
